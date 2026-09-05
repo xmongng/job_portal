@@ -1,0 +1,32 @@
+# .NET
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+
+# Node/Vite
+node_modules/
+dist/
+.vite/
+coverage/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+
+# Runtime data
+private-resumes/
+uploads/
+*.db
+
+# IDE/OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

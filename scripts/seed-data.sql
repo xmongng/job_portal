@@ -1,0 +1,2 @@
+-- Scaffold only. Seed records will be added after the initial PostgreSQL migration.
+-- Demo identities: admin@jobportal.local, recruiter@techcorp.local, applicant@example.local.

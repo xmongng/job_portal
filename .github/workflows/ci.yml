@@ -1,0 +1,18 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  scaffold-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify required architecture files
+        run: |
+          test -f src/backend/JobPortal.sln
+          test -f src/frontend/package.json
+          test -f docs/SRS.md
+          test -f docker-compose.yml

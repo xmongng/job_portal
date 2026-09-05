@@ -1,0 +1,38 @@
+name: job-portal
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    env_file: ${ENV_FILE:-.env.example}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  api:
+    build: ./src/backend
+    env_file: ${ENV_FILE:-.env.example}
+    depends_on:
+      - postgres
+    volumes:
+      - resume-data:/app-data/private/resumes
+    ports:
+      - "5000:8080"
+
+  web:
+    build: ./src/frontend
+    depends_on:
+      - api
+    ports:
+      - "5173:80"
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    profiles: ["email"]
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  postgres-data:
+  resume-data:

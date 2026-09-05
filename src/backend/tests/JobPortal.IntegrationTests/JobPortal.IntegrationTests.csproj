@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <!-- Testcontainers/WebApplicationFactory references will be added during implementation. -->
+    <ProjectReference Include="../../JobPortal.Api/JobPortal.Api.csproj" />
+  </ItemGroup>
+</Project>

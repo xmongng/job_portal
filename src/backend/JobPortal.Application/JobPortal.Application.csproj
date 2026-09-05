@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup><ProjectReference Include="../JobPortal.Domain/JobPortal.Domain.csproj" /></ItemGroup>
+</Project>

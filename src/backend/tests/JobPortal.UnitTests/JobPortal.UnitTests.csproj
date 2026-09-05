@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <!-- Test package references will be added during implementation. -->
+    <ProjectReference Include="../../JobPortal.Application/JobPortal.Application.csproj" />
+    <ProjectReference Include="../../JobPortal.Domain/JobPortal.Domain.csproj" />
+  </ItemGroup>
+</Project>
