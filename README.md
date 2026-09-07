@@ -2,14 +2,14 @@
 
 Scaffold kiến trúc cho hệ thống tuyển dụng 3 vai trò: Admin, Recruiter và Applicant.
 
-> Trạng thái hiện tại: **architecture scaffold only**. Repository mới chứa cấu trúc thư mục, file khung và tài liệu; chưa có source code nghiệp vụ.
+> Trạng thái hiện tại: **architecture scaffold only**. Repository chứa cấu trúc, bootstrap tối thiểu và tài liệu; chưa có source code nghiệp vụ.
 
 ## Tech stack dự kiến
 
-- Backend: ASP.NET Core 8, Clean Architecture nhẹ
-- Database: PostgreSQL 16, Entity Framework Core
-- Frontend: React, TypeScript, Vite, Tailwind CSS
-- Testing: xUnit, React Testing Library
+- Backend: Node.js 22+, Express 5, TypeScript, kiến trúc phân lớp nhẹ
+- Database: PostgreSQL 16, `pg` và Drizzle ORM
+- Frontend: React 19, TypeScript, Vite, Tailwind CSS
+- Testing: Vitest, React Testing Library
 - Local environment: Docker Compose
 
 ## Cấu trúc chính
@@ -22,6 +22,29 @@ scripts/       Seed/migration/helper scripts
 ```
 
 Xem [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) để hiểu ownership và quy tắc phụ thuộc.
+
+## Chạy scaffold
+
+Backend:
+
+```bash
+cd src/backend
+cp ../../.env.example .env
+npm ci
+npm run dev
+```
+
+Frontend (terminal khác):
+
+```bash
+cd src/frontend
+npm ci
+npm run dev
+```
+
+API health check: `http://localhost:5000/api/health`. Frontend: `http://localhost:5173`.
+
+Trước khi chạy backend trực tiếp ngoài Docker, đổi hostname `postgres` trong `src/backend/.env` thành `localhost`.
 
 ## Quy ước phát triển
 

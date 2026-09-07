@@ -1,1 +1,0 @@
-// TODO: Offer domain entity.

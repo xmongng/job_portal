@@ -1,1 +1,0 @@
-// TODO: Transactional email abstraction.

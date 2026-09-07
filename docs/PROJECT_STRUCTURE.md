@@ -3,24 +3,24 @@
 ## Dependency direction
 
 ```text
-JobPortal.Api ───────────────┐
-                            ▼
-JobPortal.Infrastructure → JobPortal.Application → JobPortal.Domain
+API ───────────────┐
+                  ▼
+Infrastructure → Application → Domain
 ```
 
-- `Domain`: entity, enum, domain rule/state machine; không import EF Core/ASP.NET.
+- `Domain`: entity, enum, domain rule/state machine; không import Express/PostgreSQL.
 - `Application`: use case, DTO, validation và abstraction cho external service.
 - `Infrastructure`: persistence, file storage, email, AI provider và reporting.
-- `Api`: HTTP contract, authentication/authorization, middleware và DI composition.
+- `API`: Express routers, HTTP contract, authentication/authorization, middleware và dependency composition.
 
 ## Backend conventions
 
-- Một file cho mỗi public type.
+- Một module TypeScript cho mỗi use case hoặc domain concept.
 - Command thay đổi state; Query chỉ đọc dữ liệu.
 - Feature folder dùng tên số nhiều (`Jobs`, `Applications`).
-- Interface hạ tầng đặt trong `Application/Common/Interfaces`.
-- EF configuration tách khỏi entity và đặt trong `Persistence/Configurations`.
-- Migration chỉ được tạo từ project Infrastructure.
+- Port/interface hạ tầng đặt trong `application/ports`.
+- PostgreSQL schema và repository đặt trong `infrastructure/persistence`.
+- Migration chỉ được tạo và chạy từ infrastructure.
 - Unit test phản chiếu đường dẫn source; integration test đặt theo business flow.
 
 ## Frontend conventions
@@ -37,7 +37,7 @@ JobPortal.Infrastructure → JobPortal.Application → JobPortal.Domain
 
 | Artifact | Convention | Example |
 |---|---|---|
-| C# type/file | PascalCase | `ApproveJobCommand.cs` |
+| TypeScript use case | camelCase | `approveJob.ts` |
 | React component | PascalCase | `JobListPage.tsx` |
 | Hook | camelCase, prefix `use` | `useCurrentUser.ts` |
 | API module | camelCase + `Api` | `jobsApi.ts` |

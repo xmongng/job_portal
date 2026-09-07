@@ -44,34 +44,34 @@ job-portal/
 
 ---
 
-# 2. Cấu trúc Backend — ASP.NET Core (.NET 8), Clean Architecture nhẹ
+# 2. Cấu trúc Backend — Node.js + Express + TypeScript, Clean Architecture nhẹ
 
 ```text
 src/backend/
-├── JobPortal.sln
+├── package.json
 │
-├── JobPortal.Domain/                  # Không phụ thuộc framework/database
+├── src/domain/                  # Không phụ thuộc framework/database
 │   ├── Entities/
-│   │   ├── User.cs
-│   │   ├── Company.cs
-│   │   ├── Job.cs
-│   │   ├── Skill.cs
-│   │   ├── Applicant.cs
-│   │   ├── Resume.cs
-│   │   ├── Application.cs
-│   │   ├── ApplicationStatusHistory.cs
-│   │   ├── Interview.cs
-│   │   ├── Offer.cs
-│   │   └── Notification.cs
+│   │   ├── User.ts
+│   │   ├── Company.ts
+│   │   ├── Job.ts
+│   │   ├── Skill.ts
+│   │   ├── Applicant.ts
+│   │   ├── Resume.ts
+│   │   ├── Application.ts
+│   │   ├── ApplicationStatusHistory.ts
+│   │   ├── Interview.ts
+│   │   ├── Offer.ts
+│   │   └── Notification.ts
 │   ├── Enums/
-│   │   ├── JobStatus.cs               # Draft, PendingApproval, Published, Rejected, Closed
-│   │   ├── ApplicationStatus.cs       # Applied, Screening, Interview, Offer, Hired, Rejected, Withdrawn
-│   │   ├── OfferStatus.cs
-│   │   └── UserRole.cs                # Admin, Recruiter, Applicant
+│   │   ├── JobStatus.ts               # Draft, PendingApproval, Published, Rejected, Closed
+│   │   ├── ApplicationStatus.ts       # Applied, Screening, Interview, Offer, Hired, Rejected, Withdrawn
+│   │   ├── OfferStatus.ts
+│   │   └── UserRole.ts                # Admin, Recruiter, Applicant
 │   └── Common/
-│       └── AuditableEntity.cs         # CreatedAt/CreatedBy tối giản (không versioning phức tạp)
+│       └── AuditableEntity.ts         # CreatedAt/CreatedBy tối giản (không versioning phức tạp)
 │
-├── JobPortal.Application/              # Use case, DTO, interface
+├── src/application/              # Use case, DTO, interface
 │   ├── Auth/
 │   │   ├── Commands/ (Register, Login, RefreshToken, ForgotPassword, ResetPassword)
 │   │   └── Dtos/
@@ -96,67 +96,67 @@ src/backend/
 │   ├── Recommendations/
 │   │   └── Queries/ (GetRecommendedJobs)         # rule-based scoring, mục 4.1 file phân tích
 │   ├── Ai/
-│   │   ├── IAiAssistant.cs                        # interface — dễ tắt/mock khi cần
-│   │   ├── ExplainMatchQuery.cs                    # mục 4.2
-│   │   └── GenerateJobDescriptionCommand.cs        # mục 4.3
+│   │   ├── AiAssistant.ts                        # interface — dễ tắt/mock khi cần
+│   │   ├── ExplainMatchQuery.ts                    # mục 4.2
+│   │   └── GenerateJobDescriptionCommand.ts        # mục 4.3
 │   ├── Reports/
 │   │   └── Queries/ (JobCountReport, ApplicantCountReport)
 │   ├── Notifications/
-│   │   └── NotificationService.cs
+│   │   └── NotificationService.ts
 │   └── Common/
-│       ├── Interfaces/ (IFileStorage, ICurrentUser, IEmailSender, IAppDbContext)
+│       ├── Interfaces/ (FileStorage, CurrentUser, EmailSender, AppDbContext)
 │       └── Behaviors/ (ValidationHelper — không bắt buộc dùng FluentValidation/MediatR)
 │
-├── JobPortal.Infrastructure/            # EF Core, PostgreSQL, file, email, AI
+├── src/infrastructure/            # Drizzle ORM, PostgreSQL, file, email, AI
 │   ├── Persistence/
-│   │   ├── AppDbContext.cs
-│   │   ├── Configurations/             # EF Fluent API cho từng entity
+│   │   ├── AppDbContext.ts
+│   │   ├── Configurations/             # Drizzle schema cho từng entity
 │   │   └── Migrations/
 │   ├── FileStorage/
-│   │   └── LocalPrivateFileStorage.cs  # lưu ngoài webroot, random filename
+│   │   └── LocalPrivateFileStorage.ts  # lưu ngoài webroot, random filename
 │   ├── Email/
-│   │   └── SmtpEmailSender.cs          # dùng MailKit, trỏ tới MailHog khi dev
+│   │   └── SmtpEmailSender.ts          # dùng Nodemailer, trỏ tới MailHog khi dev
 │   ├── Ai/
-│   │   └── LlmHttpAiAssistant.cs       # gọi HttpClient tới OpenAI/Gemini, có fallback
+│   │   └── LlmHttpAiAssistant.ts       # gọi fetch tới OpenAI/Gemini, có fallback
 │   ├── Reporting/
-│   │   └── CsvReportExporter.cs
-│   └── DependencyInjection.cs
+│   │   └── CsvReportExporter.ts
+│   └── DependencyInjection.ts
 │
-├── JobPortal.Api/                       # Controller, middleware, auth policy
-│   ├── Controllers/
-│   │   ├── AuthController.cs
-│   │   ├── CompaniesController.cs
-│   │   ├── JobsController.cs
-│   │   ├── ApplicantsController.cs
-│   │   ├── ApplicationsController.cs
-│   │   ├── InterviewsController.cs
-│   │   ├── OffersController.cs
-│   │   ├── RecommendationsController.cs
-│   │   ├── AiController.cs
-│   │   ├── ReportsController.cs
-│   │   └── NotificationsController.cs
+├── src/api/                       # Router, middleware, auth policy
+│   ├── routes/
+│   │   ├── AuthRouter.ts
+│   │   ├── CompaniesRouter.ts
+│   │   ├── JobsRouter.ts
+│   │   ├── ApplicantsRouter.ts
+│   │   ├── ApplicationsRouter.ts
+│   │   ├── InterviewsRouter.ts
+│   │   ├── OffersRouter.ts
+│   │   ├── RecommendationsRouter.ts
+│   │   ├── AiRouter.ts
+│   │   ├── ReportsRouter.ts
+│   │   └── NotificationsRouter.ts
 │   ├── Middleware/
-│   │   ├── ExceptionHandlingMiddleware.cs
-│   │   └── AuditActionFilter.cs         # ghi audit_logs cho action nhạy cảm (duyệt job, tải CV)
+│   │   ├── ExceptionHandlingMiddleware.ts
+│   │   └── AuditActionFilter.ts         # ghi audit_logs cho action nhạy cảm (duyệt job, tải CV)
 │   ├── Authorization/
-│   │   ├── ResourceAuthorizationHandlers.cs  # recruiter chỉ thao tác company/job của mình
-│   │   └── Policies.cs
-│   ├── Program.cs
-│   ├── appsettings.json
-│   └── appsettings.Development.json
+│   │   ├── ResourceAuthorizationHandlers.ts  # recruiter chỉ thao tác company/job của mình
+│   │   └── Policies.ts
+│   ├── server.ts
+│   ├── app.ts
+│   └── server.ts
 │
 └── tests/
-    ├── JobPortal.UnitTests/
-    │   ├── Jobs/JobStateMachineTests.cs
-    │   ├── Applications/ApplicationStatusTests.cs
-    │   └── Recommendations/ScoringTests.cs
-    └── JobPortal.IntegrationTests/
-        ├── AuthFlowTests.cs
-        ├── JobApprovalFlowTests.cs
-        └── ApplyFlowTests.cs
+    ├── unit/
+    │   ├── Jobs/JobStateMachineTests.ts
+    │   ├── Applications/ApplicationStatusTests.ts
+    │   └── Recommendations/ScoringTests.ts
+    └── integration/
+        ├── AuthFlowTests.ts
+        ├── JobApprovalFlowTests.ts
+        └── ApplyFlowTests.ts
 ```
 
-**Đã bỏ/gộp so với bản gốc:** không tạo `IRepository<T>` generic cho mọi entity (dùng thẳng `AppDbContext`), không có thư mục riêng cho background job queue (gửi email/notification xử lý ngay trong use case hoặc qua 1 `IHostedService` đơn giản nếu cần), không có module Redis/cache riêng ở giai đoạn đầu.
+**Đã bỏ/gộp so với bản gốc:** không tạo `IRepository<T>` generic cho mọi entity (dùng thẳng `AppDbContext`), không có thư mục riêng cho background job queue (gửi email/notification xử lý ngay trong use case hoặc qua 1 `worker in-process` đơn giản nếu cần), không có module Redis/cache riêng ở giai đoạn đầu.
 
 ---
 
@@ -369,7 +369,7 @@ volumes:
   FILE_STORAGE_PATH=/app-data/private/resumes
 ```
 
-- `AI_PROVIDER=none` cho phép **tắt hoàn toàn tính năng AI** trong `IAiAssistant` mà không cần sửa code các module khác — quan trọng để đảm bảo phần lõi vẫn chạy được nếu AI gặp sự cố ngay trước demo.
+- `AI_PROVIDER=none` cho phép **tắt hoàn toàn tính năng AI** trong `AiAssistant` mà không cần sửa code các module khác — quan trọng để đảm bảo phần lõi vẫn chạy được nếu AI gặp sự cố ngay trước demo.
 - `scripts/seed-data.sql` (hoặc 1 `SeedDataService` chạy khi start ở môi trường Development): sinh ~200–300 record cho `companies/jobs/applicants/applications` kèm 3 tài khoản demo cố định (`admin@jobportal.local`, `recruiter@techcorp.local`, `applicant@example.local`).
 
 ---

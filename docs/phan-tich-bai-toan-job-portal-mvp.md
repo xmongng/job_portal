@@ -15,7 +15,7 @@
 - Toàn bộ **state machine** của Job và Application (Draft → PendingApproval → Published; Applied → Screening → Interview → Offer → Hired/Rejected).
 - Cách tiếp cận **AI không cần vector DB**: recommendation bằng rule-based scoring + LLM chỉ dùng cho 2 việc nhỏ (giải thích match, hỗ trợ viết JD). Đây là điểm rất đúng — nhiều đồ án sinh viên sa đà vào AI phức tạp (embedding, fine-tune) và không kịp làm nghiệp vụ chính.
 - Nguyên tắc bảo mật CV: private storage, allowlist định dạng, random filename, download có kiểm tra quyền, audit khi tải CV.
-- Tech stack: ASP.NET Core 8 + PostgreSQL + React/TS/Vite — không cần đổi.
+- Tech stack: Node.js + Express + PostgreSQL + React/TS/Vite.
 
 ## 0.2. Vấn đề khi áp vào mốc 5 tuần
 
@@ -140,7 +140,7 @@ refresh_tokens            (tối giản, không cần rotation phức tạp cho 
         + 0.25 × (cùng địa điểm ? 1 : 0)
         + 0.15 × (mức lương mong muốn nằm trong range job ? 1 : 0)
   ```
-- Chạy bằng 1 câu truy vấn SQL/LINQ join `applicant_skills` với `job_skills`, sắp xếp giảm dần theo `score`, trả top N job `Published`.
+- Chạy bằng một truy vấn SQL join `applicant_skills` với `job_skills`, sắp xếp giảm dần theo `score`, trả top N job `Published`.
 - Đây **là AI theo nghĩa hệ gợi ý (recommender system)** — hoàn toàn hợp lệ để tính là "tích hợp AI cơ bản", làm được trong 1–2 ngày, không rủi ro về chi phí/API.
 
 ### 4.2. AI giải thích độ phù hợp — dùng LLM thật (OpenAI/Gemini API)
@@ -157,8 +157,8 @@ refresh_tokens            (tối giản, không cần rotation phức tạp cho 
 
 ### 4.4. Nguyên tắc kỹ thuật chung
 
-- Gọi LLM qua `HttpClient` trực tiếp — không cần thêm SDK lớn.
-- Tạo 1 interface `IAiAssistant` trong Application layer, implement thật ở Infrastructure — để dễ đổi provider hoặc mock khi test, và dễ tắt AI hoàn toàn nếu hết thời gian mà không ảnh hưởng phần còn lại của hệ thống.
+- Gọi LLM qua `fetch` phía server — không cần thêm SDK lớn.
+- Tạo một interface `AiAssistant` trong Application layer, implement thật ở Infrastructure — để dễ đổi provider hoặc mock khi test, và dễ tắt AI hoàn toàn nếu hết thời gian mà không ảnh hưởng phần còn lại của hệ thống.
 - Giấu API key trong biến môi trường, không log nội dung prompt/response có thể chứa dữ liệu nhạy cảm.
 
 ---
@@ -175,7 +175,7 @@ refresh_tokens            (tối giản, không cần rotation phức tạp cho 
 | CSV/Excel export đầy đủ | Giữ CSV cho báo cáo, PDF cho **CV template** (đề bài có yêu cầu riêng mục này), bỏ Excel nếu thiếu thời gian | CSV nhanh làm, đủ đáp ứng "báo cáo số tin/số ứng viên" |
 | Audit log & versioning/optimistic concurrency chi tiết | Giữ audit tối thiểu (ai duyệt job, ai tải CV) | Đề bài chỉ yêu cầu "bảo mật file CV, phân quyền xem hồ sơ", không yêu cầu lịch sử version |
 | Bảng `background_jobs` riêng + BackgroundService phức tạp | Gửi email/notification xử lý đồng bộ hoặc hàng đợi trong bộ nhớ đơn giản | Khối lượng thao tác nhỏ trong demo, chưa cần hệ thống job production |
-| Rate limiting/CORS/logging chuẩn production | Giữ ở mức cơ bản dùng middleware có sẵn của .NET | Vẫn có, nhưng không đầu tư sâu thêm |
+| Rate limiting/CORS/logging chuẩn production | Giữ ở mức cơ bản dùng middleware Express | Vẫn có, nhưng không đầu tư sâu thêm |
 | Multi-round interview với business rule phức tạp | 1 bảng `interviews` có `round_number` là đủ | Đủ minh chứng "hỗ trợ nhiều vòng phỏng vấn" |
 | CI/CD 2 workflow build/deploy riêng | 1 workflow CI: build + test cơ bản | Đủ minh chứng automation |
 | Docker Compose 5 service | Rút còn 3 service bắt buộc (`api`, `web`, `postgres`), Mailhog/Redis optional | Giảm thời gian setup hạ tầng |
@@ -190,7 +190,7 @@ refresh_tokens            (tối giản, không cần rotation phức tạp cho 
 *Giả định: 1 người hoặc nhóm nhỏ 2–3 người, làm việc gần như toàn thời gian. Mỗi tuần kết thúc bằng một bản demo được (không phải "code xong nhưng chưa chạy").*
 
 ## Tuần 1 — Nền tảng + Auth/RBAC + Company/Job cơ bản
-- Ngày 1–2: khởi tạo repo, Docker Compose tối giản, solution backend 4 layer, frontend Vite+React+TS+Tailwind (áp bảng màu ở mục 7 ngay từ đầu), thiết kế schema DB rút gọn (mục 3) + migration đầu tiên.
+- Ngày 1–2: khởi tạo repo, Docker Compose tối giản, backend TypeScript phân lớp, frontend Vite+React+TS+Tailwind (áp bảng màu ở mục 7 ngay từ đầu), thiết kế schema DB rút gọn (mục 3) + migration đầu tiên.
 - Ngày 3–4: đăng ký/đăng nhập/JWT + refresh token đơn giản, 3 role, middleware phân quyền, seed 3 tài khoản demo (admin/recruiter/applicant).
 - Ngày 5: Company CRUD, Job CRUD (Draft), state machine Job, màn hình Admin duyệt job.
 - **Bàn giao:** đăng nhập 3 role hoạt động; recruiter tạo job → admin duyệt → job Published.

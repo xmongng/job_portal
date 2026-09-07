@@ -1,1 +1,0 @@
-// TODO: Offer detail query.

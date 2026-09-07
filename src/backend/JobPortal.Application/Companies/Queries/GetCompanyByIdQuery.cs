@@ -1,1 +1,0 @@
-// TODO: Company detail query.

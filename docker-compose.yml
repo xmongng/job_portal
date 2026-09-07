@@ -17,7 +17,7 @@ services:
     volumes:
       - resume-data:/app-data/private/resumes
     ports:
-      - "5000:8080"
+      - "5000:5000"
 
   web:
     build: ./src/frontend

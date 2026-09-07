@@ -1,1 +1,0 @@
-// TODO: Job detail query.
