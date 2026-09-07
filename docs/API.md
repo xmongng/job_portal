@@ -15,4 +15,4 @@ Base path dự kiến: `/api`.
 | Reports/Audit | `/reports`, `/audit-logs` |
 | Notifications | `/notifications` |
 
-OpenAPI sẽ là source of truth khi bắt đầu triển khai Express router.
+OpenAPI sẽ là source of truth khi bắt đầu triển khai FastAPI router.

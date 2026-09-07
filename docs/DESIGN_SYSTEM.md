@@ -25,4 +25,4 @@
 | Offer | `#CCFBF1` | `#0F766E` |
 | Hired/Accepted | `#ECFDF5` | `#047857` |
 
-Typography dùng Inter; spacing theo thang 4px; radius 8/12/16px; shadow card nhẹ. Tất cả token phải được khai báo một lần tại Tailwind/CSS và export lại qua `src/theme/tokens.ts`.
+Typography dùng Inter; spacing theo thang 4px; radius 8/12/16px; shadow card nhẹ. Token được khai báo một lần bằng Tailwind CSS 4 trong stylesheet và export lại qua `src/theme/tokens.ts` khi TypeScript cần dùng trực tiếp.

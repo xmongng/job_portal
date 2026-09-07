@@ -6,8 +6,8 @@ Scaffold kiến trúc cho hệ thống tuyển dụng 3 vai trò: Admin, Recruit
 
 ## Tech stack dự kiến
 
-- Backend: Node.js 22+, Express 5, TypeScript, kiến trúc phân lớp nhẹ
-- Database: PostgreSQL 16, `pg` và Drizzle ORM
+- Backend: Python 3.12+, FastAPI, kiến trúc phân lớp nhẹ
+- Database: PostgreSQL 16, SQLAlchemy và Psycopg
 - Frontend: React 19, TypeScript, Vite, Tailwind CSS
 - Testing: Vitest, React Testing Library
 - Local environment: Docker Compose
@@ -30,8 +30,10 @@ Backend:
 ```bash
 cd src/backend
 cp ../../.env.example .env
-npm ci
-npm run dev
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+uvicorn app.main:app --reload --port 5000
 ```
 
 Frontend (terminal khác):
@@ -42,7 +44,7 @@ npm ci
 npm run dev
 ```
 
-API health check: `http://localhost:5000/api/health`. Frontend: `http://localhost:5173`.
+API health check: `http://localhost:5000/api/health`. FastAPI documentation: `http://localhost:5000/docs`. Frontend: `http://localhost:5173`.
 
 Trước khi chạy backend trực tiếp ngoài Docker, đổi hostname `postgres` trong `src/backend/.env` thành `localhost`.
 

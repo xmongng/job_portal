@@ -44,119 +44,117 @@ job-portal/
 
 ---
 
-# 2. Cấu trúc Backend — Node.js + Express + TypeScript, Clean Architecture nhẹ
+# 2. Cấu trúc Backend — Python + FastAPI, Clean Architecture nhẹ
 
 ```text
 src/backend/
-├── package.json
+├── pyproject.toml
 │
-├── src/domain/                  # Không phụ thuộc framework/database
-│   ├── Entities/
-│   │   ├── User.ts
-│   │   ├── Company.ts
-│   │   ├── Job.ts
-│   │   ├── Skill.ts
-│   │   ├── Applicant.ts
-│   │   ├── Resume.ts
-│   │   ├── Application.ts
-│   │   ├── ApplicationStatusHistory.ts
-│   │   ├── Interview.ts
-│   │   ├── Offer.ts
-│   │   └── Notification.ts
-│   ├── Enums/
-│   │   ├── JobStatus.ts               # Draft, PendingApproval, Published, Rejected, Closed
-│   │   ├── ApplicationStatus.ts       # Applied, Screening, Interview, Offer, Hired, Rejected, Withdrawn
-│   │   ├── OfferStatus.ts
-│   │   └── UserRole.ts                # Admin, Recruiter, Applicant
-│   └── Common/
-│       └── AuditableEntity.ts         # CreatedAt/CreatedBy tối giản (không versioning phức tạp)
+├── app/domain/                  # Không phụ thuộc framework/database
+│   ├── entities/
+│   │   ├── user.py
+│   │   ├── company.py
+│   │   ├── job.py
+│   │   ├── skill.py
+│   │   ├── applicant.py
+│   │   ├── resume.py
+│   │   ├── application.py
+│   │   ├── application_status_history.py
+│   │   ├── interview.py
+│   │   ├── offer.py
+│   │   └── notification.py
+│   ├── enums/
+│   │   ├── job_status.py               # Draft, PendingApproval, Published, Rejected, Closed
+│   │   ├── application_status.py       # Applied, Screening, Interview, Offer, Hired, Rejected, Withdrawn
+│   │   ├── offer_status.py
+│   │   └── user_role.py                # Admin, Recruiter, Applicant
+│   └── common/
+│       └── auditable_entity.py         # CreatedAt/CreatedBy tối giản
 │
-├── src/application/              # Use case, DTO, interface
-│   ├── Auth/
-│   │   ├── Commands/ (Register, Login, RefreshToken, ForgotPassword, ResetPassword)
-│   │   └── Dtos/
-│   ├── Companies/
-│   │   ├── Commands/ (CreateCompany, UpdateCompany)
-│   │   └── Queries/ (GetCompanyById, ListCompanies)
-│   ├── Jobs/
-│   │   ├── Commands/ (CreateJob, UpdateJob, SubmitJob, ApproveJob, RejectJob, CloseJob)
-│   │   └── Queries/ (SearchJobs, GetJobById, ListPendingJobs)
-│   ├── Applicants/
-│   │   ├── Commands/ (UpdateProfile, UploadResume, DeleteResume, SetDefaultResume)
-│   │   └── Queries/ (GetProfile, ListResumes)
-│   ├── Applications/
-│   │   ├── Commands/ (Apply, ChangeStatus, WithdrawApplication)
-│   │   └── Queries/ (GetMyApplications, GetApplicationsByJob)
-│   ├── Interviews/
-│   │   ├── Commands/ (ScheduleInterview, RecordResult)
-│   │   └── Queries/ (GetInterviewsByApplication)
-│   ├── Offers/
-│   │   ├── Commands/ (CreateOffer, AcceptOffer, RejectOffer)
-│   │   └── Queries/ (GetOfferByApplication)
-│   ├── Recommendations/
-│   │   └── Queries/ (GetRecommendedJobs)         # rule-based scoring, mục 4.1 file phân tích
-│   ├── Ai/
-│   │   ├── AiAssistant.ts                        # interface — dễ tắt/mock khi cần
-│   │   ├── ExplainMatchQuery.ts                    # mục 4.2
-│   │   └── GenerateJobDescriptionCommand.ts        # mục 4.3
-│   ├── Reports/
-│   │   └── Queries/ (JobCountReport, ApplicantCountReport)
-│   ├── Notifications/
-│   │   └── NotificationService.ts
-│   └── Common/
-│       ├── Interfaces/ (FileStorage, CurrentUser, EmailSender, AppDbContext)
-│       └── Behaviors/ (ValidationHelper — không bắt buộc dùng FluentValidation/MediatR)
+├── app/application/              # Use case, DTO, interface
+│   ├── auth/
+│   │   ├── commands/ (Register, Login, RefreshToken, ForgotPassword, ResetPassword)
+│   │   └── dtos/
+│   ├── companies/
+│   │   ├── commands/ (CreateCompany, UpdateCompany)
+│   │   └── queries/ (GetCompanyById, ListCompanies)
+│   ├── jobs/
+│   │   ├── commands/ (CreateJob, UpdateJob, SubmitJob, ApproveJob, RejectJob, CloseJob)
+│   │   └── queries/ (SearchJobs, GetJobById, ListPendingJobs)
+│   ├── applicants/
+│   │   ├── commands/ (UpdateProfile, UploadResume, DeleteResume, SetDefaultResume)
+│   │   └── queries/ (GetProfile, ListResumes)
+│   ├── applications/
+│   │   ├── commands/ (Apply, ChangeStatus, WithdrawApplication)
+│   │   └── queries/ (GetMyApplications, GetApplicationsByJob)
+│   ├── interviews/
+│   │   ├── commands/ (ScheduleInterview, RecordResult)
+│   │   └── queries/ (GetInterviewsByApplication)
+│   ├── offers/
+│   │   ├── commands/ (CreateOffer, AcceptOffer, RejectOffer)
+│   │   └── queries/ (GetOfferByApplication)
+│   ├── recommendations/
+│   │   └── queries/ (GetRecommendedJobs)         # rule-based scoring, mục 4.1 file phân tích
+│   ├── ai/
+│   │   ├── assistant.py                         # protocol — dễ tắt/mock khi cần
+│   │   ├── explain_match.py                     # mục 4.2
+│   │   └── generate_job_description.py          # mục 4.3
+│   ├── reports/
+│   │   └── queries/ (JobCountReport, ApplicantCountReport)
+│   ├── notifications/
+│   │   └── service.py
+│   └── common/
+│       ├── ports/ (FileStorage, CurrentUser, EmailSender, database session)
+│       └── validation/ (Pydantic schemas)
 │
-├── src/infrastructure/            # Drizzle ORM, PostgreSQL, file, email, AI
-│   ├── Persistence/
-│   │   ├── AppDbContext.ts
-│   │   ├── Configurations/             # Drizzle schema cho từng entity
-│   │   └── Migrations/
-│   ├── FileStorage/
-│   │   └── LocalPrivateFileStorage.ts  # lưu ngoài webroot, random filename
-│   ├── Email/
-│   │   └── SmtpEmailSender.ts          # dùng Nodemailer, trỏ tới MailHog khi dev
-│   ├── Ai/
-│   │   └── LlmHttpAiAssistant.ts       # gọi fetch tới OpenAI/Gemini, có fallback
-│   ├── Reporting/
-│   │   └── CsvReportExporter.ts
-│   └── DependencyInjection.ts
+├── app/infrastructure/            # SQLAlchemy, PostgreSQL, file, email, AI
+│   ├── persistence/
+│   │   ├── database.py
+│   │   ├── models/             # SQLAlchemy model/schema cho từng entity
+│   │   └── migrations/
+│   ├── file_storage/
+│   │   └── local_private_storage.py    # lưu ngoài webroot, random filename
+│   ├── email/
+│   │   └── smtp_sender.py              # dùng SMTP client, trỏ tới MailHog khi dev
+│   ├── ai/
+│   │   └── llm_http_assistant.py       # gọi httpx tới OpenAI/Gemini, có fallback
+│   ├── reporting/
+│   │   └── csv_exporter.py
+│   └── dependencies.py
 │
-├── src/api/                       # Router, middleware, auth policy
+├── app/api/                       # FastAPI router, middleware, auth policy
 │   ├── routes/
-│   │   ├── AuthRouter.ts
-│   │   ├── CompaniesRouter.ts
-│   │   ├── JobsRouter.ts
-│   │   ├── ApplicantsRouter.ts
-│   │   ├── ApplicationsRouter.ts
-│   │   ├── InterviewsRouter.ts
-│   │   ├── OffersRouter.ts
-│   │   ├── RecommendationsRouter.ts
-│   │   ├── AiRouter.ts
-│   │   ├── ReportsRouter.ts
-│   │   └── NotificationsRouter.ts
-│   ├── Middleware/
-│   │   ├── ExceptionHandlingMiddleware.ts
-│   │   └── AuditActionFilter.ts         # ghi audit_logs cho action nhạy cảm (duyệt job, tải CV)
-│   ├── Authorization/
-│   │   ├── ResourceAuthorizationHandlers.ts  # recruiter chỉ thao tác company/job của mình
-│   │   └── Policies.ts
-│   ├── server.ts
-│   ├── app.ts
-│   └── server.ts
+│   │   ├── auth.py
+│   │   ├── companies.py
+│   │   ├── jobs.py
+│   │   ├── applicants.py
+│   │   ├── applications.py
+│   │   ├── interviews.py
+│   │   ├── offers.py
+│   │   ├── recommendations.py
+│   │   ├── ai.py
+│   │   ├── reports.py
+│   │   └── notifications.py
+│   ├── middleware/
+│   │   ├── exception_handler.py
+│   │   └── audit.py                     # ghi audit_logs cho action nhạy cảm
+│   ├── authorization/
+│   │   ├── resource_access.py           # recruiter chỉ thao tác company/job của mình
+│   │   └── policies.py
+│   └── main.py
 │
 └── tests/
     ├── unit/
-    │   ├── Jobs/JobStateMachineTests.ts
-    │   ├── Applications/ApplicationStatusTests.ts
-    │   └── Recommendations/ScoringTests.ts
+    │   ├── jobs/JobStateMachineTests.py
+    │   ├── applications/ApplicationStatusTests.py
+    │   └── recommendations/test_scoring.py
     └── integration/
-        ├── AuthFlowTests.ts
-        ├── JobApprovalFlowTests.ts
-        └── ApplyFlowTests.ts
+        ├── test_auth_flow.py
+        ├── test_job_approval_flow.py
+        └── test_apply_flow.py
 ```
 
-**Đã bỏ/gộp so với bản gốc:** không tạo `IRepository<T>` generic cho mọi entity (dùng thẳng `AppDbContext`), không có thư mục riêng cho background job queue (gửi email/notification xử lý ngay trong use case hoặc qua 1 `worker in-process` đơn giản nếu cần), không có module Redis/cache riêng ở giai đoạn đầu.
+**Đã bỏ/gộp so với bản gốc:** không tạo generic repository cho mọi entity (dùng SQLAlchemy session qua application port), không có thư mục riêng cho background-job queue, và không có module Redis/cache ở giai đoạn đầu.
 
 ---
 
@@ -166,8 +164,6 @@ src/backend/
 src/frontend/
 ├── index.html
 ├── vite.config.ts
-├── tailwind.config.ts                 # chứa toàn bộ token màu — xem mục 4
-├── postcss.config.js
 ├── tsconfig.json
 │
 ├── public/
@@ -262,53 +258,38 @@ Admin:     /admin/dashboard /admin/jobs/pending /admin/companies /admin/users
 
 # 4. Design System áp vào code (đồng bộ với file phân tích, mục 7)
 
-```ts
-// src/frontend/tailwind.config.ts
-import type { Config } from 'tailwindcss'
+```css
+/* src/frontend/src/styles/globals.css — Tailwind CSS 4 */
+@import "tailwindcss";
 
-export default {
-  content: ['./index.html', './src/**/*.{ts,tsx}'],
-  theme: {
-    extend: {
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-      },
-      colors: {
-        primary: { DEFAULT: '#2563EB', hover: '#1D4ED8', 50: '#EFF6FF' },
-        accent:  { DEFAULT: '#10B981', 50: '#ECFDF5' },
-        bg: '#F8FAFC',
-        surface: '#FFFFFF',
-        border: '#E2E8F0',
-        text: { DEFAULT: '#0F172A', muted: '#64748B' },
-        status: {
-          draftBg: '#F1F5F9',     draftText: '#64748B',
-          pendingBg: '#FEF3C7',   pendingText: '#B45309',
-          publishedBg: '#EFF6FF',publishedText: '#1D4ED8',
-          rejectedBg: '#FEE2E2', rejectedText: '#B91C1C',
-          interviewBg: '#EDE9FE',interviewText: '#6D28D9',
-          offerBg: '#CCFBF1',    offerText: '#0F766E',
-          hiredBg: '#ECFDF5',    hiredText: '#047857',
-        },
-      },
-      borderRadius: { DEFAULT: '8px', card: '12px', modal: '16px' },
-      boxShadow: { card: '0 1px 3px rgba(15,23,42,0.06)' },
-    },
-  },
-} satisfies Config
+@theme {
+  --font-sans: Inter, system-ui, sans-serif;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-accent: #10b981;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-status-draft-bg: #f1f5f9;
+  --color-status-draft-text: #64748b;
+  --color-status-pending-bg: #fef3c7;
+  --color-status-pending-text: #b45309;
+  --color-status-offer-bg: #ccfbf1;
+  --color-status-offer-text: #0f766e;
+  --color-status-hired-bg: #ecfdf5;
+  --color-status-hired-text: #047857;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+  --shadow-card: 0 1px 3px rgb(15 23 42 / 6%);
+}
 ```
 
 ```tsx
 // src/frontend/src/components/ui/Badge.tsx (ví dụ map trạng thái -> màu)
 const statusStyles: Record<string, string> = {
-  Draft: 'bg-status-draftBg text-status-draftText',
-  PendingApproval: 'bg-status-pendingBg text-status-pendingText',
-  Published: 'bg-status-publishedBg text-status-publishedText',
-  Rejected: 'bg-status-rejectedBg text-status-rejectedText',
-  Applied: 'bg-status-publishedBg text-status-publishedText',
-  Screening: 'bg-status-pendingBg text-status-pendingText',
-  Interview: 'bg-status-interviewBg text-status-interviewText',
-  Offer: 'bg-status-offerBg text-status-offerText',
-  Hired: 'bg-status-hiredBg text-status-hiredText',
+  Draft: 'bg-status-draft-bg text-status-draft-text',
+  PendingApproval: 'bg-status-pending-bg text-status-pending-text',
+  Offer: 'bg-status-offer-bg text-status-offer-text',
+  Hired: 'bg-status-hired-bg text-status-hired-text',
 }
 ```
 
@@ -332,7 +313,7 @@ services:
     build: ./src/backend
     env_file: .env
     depends_on: [postgres]
-    ports: ["5000:8080"]
+    ports: ["5000:5000"]
     volumes:
       - resumes:/app-data/private/resumes   # CV private, không expose static
 

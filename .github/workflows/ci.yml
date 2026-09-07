@@ -15,8 +15,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify required architecture files
         run: |
-          test -f src/backend/package.json
-          test -f src/backend/src/api/server.ts
+          test -f src/backend/pyproject.toml
+          test -f src/backend/app/main.py
           test -f src/frontend/package.json
           test -f docs/SRS.md
           test -f docker-compose.yml
@@ -30,16 +30,14 @@ jobs:
         working-directory: src/backend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: src/backend/package-lock.json
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install ".[dev]"
+      - run: ruff check .
+      - run: python -m compileall app
+      - run: pytest
 
   frontend:
     runs-on: ubuntu-latest

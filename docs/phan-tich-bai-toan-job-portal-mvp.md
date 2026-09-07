@@ -15,7 +15,7 @@
 - Toàn bộ **state machine** của Job và Application (Draft → PendingApproval → Published; Applied → Screening → Interview → Offer → Hired/Rejected).
 - Cách tiếp cận **AI không cần vector DB**: recommendation bằng rule-based scoring + LLM chỉ dùng cho 2 việc nhỏ (giải thích match, hỗ trợ viết JD). Đây là điểm rất đúng — nhiều đồ án sinh viên sa đà vào AI phức tạp (embedding, fine-tune) và không kịp làm nghiệp vụ chính.
 - Nguyên tắc bảo mật CV: private storage, allowlist định dạng, random filename, download có kiểm tra quyền, audit khi tải CV.
-- Tech stack: Node.js + Express + PostgreSQL + React/TS/Vite.
+- Tech stack: Python + FastAPI + PostgreSQL + React/TS/Vite.
 
 ## 0.2. Vấn đề khi áp vào mốc 5 tuần
 
@@ -175,7 +175,7 @@ refresh_tokens            (tối giản, không cần rotation phức tạp cho 
 | CSV/Excel export đầy đủ | Giữ CSV cho báo cáo, PDF cho **CV template** (đề bài có yêu cầu riêng mục này), bỏ Excel nếu thiếu thời gian | CSV nhanh làm, đủ đáp ứng "báo cáo số tin/số ứng viên" |
 | Audit log & versioning/optimistic concurrency chi tiết | Giữ audit tối thiểu (ai duyệt job, ai tải CV) | Đề bài chỉ yêu cầu "bảo mật file CV, phân quyền xem hồ sơ", không yêu cầu lịch sử version |
 | Bảng `background_jobs` riêng + BackgroundService phức tạp | Gửi email/notification xử lý đồng bộ hoặc hàng đợi trong bộ nhớ đơn giản | Khối lượng thao tác nhỏ trong demo, chưa cần hệ thống job production |
-| Rate limiting/CORS/logging chuẩn production | Giữ ở mức cơ bản dùng middleware Express | Vẫn có, nhưng không đầu tư sâu thêm |
+| Rate limiting/CORS/logging chuẩn production | Giữ ở mức cơ bản dùng middleware FastAPI | Vẫn có, nhưng không đầu tư sâu thêm |
 | Multi-round interview với business rule phức tạp | 1 bảng `interviews` có `round_number` là đủ | Đủ minh chứng "hỗ trợ nhiều vòng phỏng vấn" |
 | CI/CD 2 workflow build/deploy riêng | 1 workflow CI: build + test cơ bản | Đủ minh chứng automation |
 | Docker Compose 5 service | Rút còn 3 service bắt buộc (`api`, `web`, `postgres`), Mailhog/Redis optional | Giảm thời gian setup hạ tầng |
@@ -190,7 +190,7 @@ refresh_tokens            (tối giản, không cần rotation phức tạp cho 
 *Giả định: 1 người hoặc nhóm nhỏ 2–3 người, làm việc gần như toàn thời gian. Mỗi tuần kết thúc bằng một bản demo được (không phải "code xong nhưng chưa chạy").*
 
 ## Tuần 1 — Nền tảng + Auth/RBAC + Company/Job cơ bản
-- Ngày 1–2: khởi tạo repo, Docker Compose tối giản, backend TypeScript phân lớp, frontend Vite+React+TS+Tailwind (áp bảng màu ở mục 7 ngay từ đầu), thiết kế schema DB rút gọn (mục 3) + migration đầu tiên.
+- Ngày 1–2: khởi tạo repo, Docker Compose tối giản, backend Python/FastAPI phân lớp, frontend Vite+React+TS+Tailwind (áp bảng màu ở mục 7 ngay từ đầu), thiết kế schema DB rút gọn (mục 3) + migration đầu tiên.
 - Ngày 3–4: đăng ký/đăng nhập/JWT + refresh token đơn giản, 3 role, middleware phân quyền, seed 3 tài khoản demo (admin/recruiter/applicant).
 - Ngày 5: Company CRUD, Job CRUD (Draft), state machine Job, màn hình Admin duyệt job.
 - **Bàn giao:** đăng nhập 3 role hoạt động; recruiter tạo job → admin duyệt → job Published.
@@ -277,36 +277,28 @@ refresh_tokens            (tối giản, không cần rotation phức tạp cho 
 
 ## 7.6. Cấu hình Tailwind (áp trực tiếp vào frontend)
 
-```ts
-// tailwind.config.ts — extend.colors
-colors: {
-  primary: {
-    DEFAULT: '#2563EB',
-    hover: '#1D4ED8',
-    50: '#EFF6FF',
-  },
-  accent: {
-    DEFAULT: '#10B981',
-    50: '#ECFDF5',
-  },
-  bg: '#F8FAFC',
-  surface: '#FFFFFF',
-  border: '#E2E8F0',
-  text: {
-    DEFAULT: '#0F172A',
-    muted: '#64748B',
-  },
-  status: {
-    draftBg: '#F1F5F9', draftText: '#64748B',
-    pendingBg: '#FEF3C7', pendingText: '#B45309',
-    publishedBg: '#EFF6FF', publishedText: '#1D4ED8',
-    rejectedBg: '#FEE2E2', rejectedText: '#B91C1C',
-    interviewBg: '#EDE9FE', interviewText: '#6D28D9',
-    offerBg: '#CCFBF1', offerText: '#0F766E',
-    hiredBg: '#ECFDF5', hiredText: '#047857',
-  },
-},
-borderRadius: { DEFAULT: '8px', card: '12px', modal: '16px' },
+```css
+/* src/styles/globals.css — Tailwind CSS 4 */
+@import "tailwindcss";
+
+@theme {
+  --font-sans: Inter, system-ui, sans-serif;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-accent: #10b981;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-status-draft-bg: #f1f5f9;
+  --color-status-draft-text: #64748b;
+  --color-status-pending-bg: #fef3c7;
+  --color-status-pending-text: #b45309;
+  --color-status-offer-bg: #ccfbf1;
+  --color-status-offer-text: #0f766e;
+  --color-status-hired-bg: #ecfdf5;
+  --color-status-hired-text: #047857;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+}
 ```
 
 ---

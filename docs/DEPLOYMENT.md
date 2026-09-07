@@ -9,7 +9,7 @@
 ## Required services
 
 - PostgreSQL 16
-- Node.js/Express API
+- Python/FastAPI API
 - Static frontend served by Nginx
 - Private persistent volume cho CV
 

@@ -8,14 +8,14 @@ API ───────────────┐
 Infrastructure → Application → Domain
 ```
 
-- `Domain`: entity, enum, domain rule/state machine; không import Express/PostgreSQL.
+- `Domain`: entity, enum, domain rule/state machine; không import FastAPI/SQLAlchemy.
 - `Application`: use case, DTO, validation và abstraction cho external service.
 - `Infrastructure`: persistence, file storage, email, AI provider và reporting.
-- `API`: Express routers, HTTP contract, authentication/authorization, middleware và dependency composition.
+- `API`: FastAPI routers, HTTP contract, authentication/authorization, middleware và dependency composition.
 
 ## Backend conventions
 
-- Một module TypeScript cho mỗi use case hoặc domain concept.
+- Một module Python cho mỗi use case hoặc domain concept.
 - Command thay đổi state; Query chỉ đọc dữ liệu.
 - Feature folder dùng tên số nhiều (`Jobs`, `Applications`).
 - Port/interface hạ tầng đặt trong `application/ports`.
@@ -37,7 +37,7 @@ Infrastructure → Application → Domain
 
 | Artifact | Convention | Example |
 |---|---|---|
-| TypeScript use case | camelCase | `approveJob.ts` |
+| Python use case | snake_case | `approve_job.py` |
 | React component | PascalCase | `JobListPage.tsx` |
 | Hook | camelCase, prefix `use` | `useCurrentUser.ts` |
 | API module | camelCase + `Api` | `jobsApi.ts` |
