@@ -18,7 +18,7 @@ jobs:
           test -f src/backend/pyproject.toml
           test -f src/backend/app/main.py
           test -f src/frontend/package.json
-          test -f docs/SRS.md
+          test -f docs/business-analysis/SRS.md
           test -f docker-compose.yml
       - name: Validate Docker Compose
         run: docker compose config --quiet

@@ -21,7 +21,7 @@ docs/          SRS, ERD, API, deployment, flows, Postman và templates
 scripts/       Seed/migration/helper scripts
 ```
 
-Xem [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) để hiểu ownership và quy tắc phụ thuộc.
+Xem [PROJECT_STRUCTURE.md](docs/architecture/PROJECT_STRUCTURE.md) để hiểu ownership và quy tắc phụ thuộc.
 
 ## Chạy scaffold
 

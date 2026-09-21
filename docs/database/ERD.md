@@ -2,7 +2,7 @@
 
 Phiên bản 1.0 • 14/09/2026 • PostgreSQL 16 • Thiết kế để triển khai, chưa phải migration đã chạy.
 
-Tài liệu này và [USE_CASES.md](USE_CASES.md) là đặc tả nghiệp vụ/CSDL hiện hành. Nếu khác SRS, flow hoặc kế hoạch MVP cũ, dùng hai tài liệu này. Các quyết định dưới đây là baseline thiết kế của MVP, không mô tả nội bộ TopCV.
+Tài liệu này và [USE_CASES.md](../business-analysis/USE_CASES.md) là đặc tả nghiệp vụ/CSDL hiện hành. Nếu khác SRS, flow hoặc kế hoạch MVP cũ, dùng hai tài liệu này. Các quyết định dưới đây là baseline thiết kế của MVP, không mô tả nội bộ TopCV.
 
 ## 1. Phạm vi và quyết định
 

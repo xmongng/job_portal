@@ -15,4 +15,4 @@ Job Portal MVP hỗ trợ Admin, Recruiter và Applicant trong luồng đăng ti
 - Notification cho các thay đổi trạng thái quan trọng.
 - Dashboard theo role, report và CSV export.
 
-Chi tiết nghiệp vụ nguồn: `../phan-tich-bai-toan-job-portal-mvp.md` tại workspace ban đầu.
+Chi tiết nghiệp vụ nguồn: [phan-tich-bai-toan-job-portal-mvp.md](phan-tich-bai-toan-job-portal-mvp.md).

@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "FastAPI scaffold for the Job Portal backend"
 requires-python = ">=3.12"
 dependencies = [
+  "alembic>=1.16",
   "fastapi[standard]",
+  "pydantic-settings>=2.0",
   "psycopg[binary]>=3.2",
   "sqlalchemy>=2.0",
 ]

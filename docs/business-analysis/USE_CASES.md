@@ -1,6 +1,6 @@
 # Đặc tả use case Job Portal MVP
 
-Phiên bản 1.0 • 14/09/2026 • Đi kèm [ERD.md](ERD.md).
+Phiên bản 1.0 • 14/09/2026 • Đi kèm [ERD.md](../database/ERD.md).
 
 Hai tài liệu này là baseline triển khai hiện hành, thay phần mô tả nghiệp vụ tương ứng trong SRS/flows/kế hoạch cũ. Các giới hạn thời gian, dung lượng và quota là cấu hình mặc định của MVP.
 

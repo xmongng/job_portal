@@ -1,6 +1,6 @@
 # CẤU TRÚC DỰ ÁN — JOB PORTAL MVP (5 TUẦN)
 
-> File này đi kèm `phan-tich-bai-toan-job-portal-mvp.md`. Cấu trúc dưới đây đã **rút gọn từ bản kiến trúc gốc**: bỏ các thư mục/module phục vụ hạ tầng nặng (Elasticsearch, message broker, k8s, versioning phức tạp...) không cần cho 5 tuần, đồng thời **bổ sung sẵn phần cấu hình Design System (màu sắc)** ở frontend để áp dụng ngay từ tuần 1.
+> File này đi kèm [phan-tich-bai-toan-job-portal-mvp.md](../business-analysis/phan-tich-bai-toan-job-portal-mvp.md). Cấu trúc dưới đây đã **rút gọn từ bản kiến trúc gốc**: bỏ các thư mục/module phục vụ hạ tầng nặng (Elasticsearch, message broker, k8s, versioning phức tạp...) không cần cho 5 tuần, đồng thời **bổ sung sẵn phần cấu hình Design System (màu sắc)** ở frontend để áp dụng ngay từ tuần 1.
 
 ---
 

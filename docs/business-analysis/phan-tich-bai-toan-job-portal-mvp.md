@@ -1,7 +1,7 @@
 # PHÂN TÍCH BÀI TOÁN — JOB PORTAL (MVP 5 TUẦN)
 ### Bản điều chỉnh từ tài liệu kiến trúc gốc + Design System màu sắc
 
-> Tài liệu này **điều chỉnh lại** bản phân tích/kiến trúc gốc (`job_portal_analysis_architecture.md`) để vừa khít mốc **5 tuần**, đảm bảo *mọi chức năng cơ bản của đề bài đều chạy được thật*, có **AI tích hợp cơ bản**, và bổ sung **bảng màu/giao diện chuyên nghiệp, tươi sáng** mà bản gốc chưa có. Đi kèm với file `cau-truc-du-an-job-portal-mvp.md` (cấu trúc thư mục source code tương ứng).
+> Tài liệu này **điều chỉnh lại** bản phân tích/kiến trúc gốc (`job_portal_analysis_architecture.md`) để vừa khít mốc **5 tuần**, đảm bảo *mọi chức năng cơ bản của đề bài đều chạy được thật*, có **AI tích hợp cơ bản**, và bổ sung **bảng màu/giao diện chuyên nghiệp, tươi sáng** mà bản gốc chưa có. Đi kèm với file [cau-truc-du-an-job-portal-mvp.md](../architecture/cau-truc-du-an-job-portal-mvp.md) (cấu trúc thư mục source code tương ứng).
 
 ---
 
