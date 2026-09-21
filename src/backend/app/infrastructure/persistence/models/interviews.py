@@ -1,0 +1,1 @@
+"""Model cho interviews."""
