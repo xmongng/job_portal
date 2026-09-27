@@ -66,6 +66,14 @@ erDiagram
 
 ### 4.1. users — tài khoản
 
+- **Đại diện cho**: Con người cụ thể đăng ký và đăng nhập vào hệ thống (Ứng viên, Nhà tuyển dụng hoặc Quản trị viên).
+- **Tại sao cần**: Quản lý thông tin xác thực, phân quyền và trạng thái bảo mật tập trung cho mọi tác nhân, tách biệt hoàn toàn khỏi hồ sơ chuyên môn cá nhân hay thông tin doanh nghiệp.
+- **Các trường quan trọng & lý do**:
+  - `email`: Định danh đăng nhập duy nhất, chuẩn hóa chữ thường để tránh trùng lặp tài khoản.
+  - `password_hash`: Băm mật khẩu bằng Argon2id chống tấn công dò mật khẩu tốc độ cao.
+  - `role`: Phân quyền chính (`APPLICANT`, `RECRUITER`, `ADMIN`), một người dùng chỉ giữ 1 vai trò duy nhất trong MVP.
+  - `status` & `suspended_reason`: Cho phép đình chỉ (`SUSPENDED`) hoặc vô hiệu hóa tài khoản và bắt buộc lưu lý do giải trình.
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | id | uuid PK | Tài khoản |
@@ -83,6 +91,13 @@ Mutable. Không có API đổi role trong MVP. Quyền nhạy cảm kiểm tra t
 
 ### 4.2. auth_sessions — phiên đăng nhập
 
+- **Đại diện cho**: Một lần người dùng đăng nhập trên một thiết bị/trình duyệt cụ thể.
+- **Tại sao cần**: Nếu chỉ dùng JWT đơn thuần thì khi đổi mật khẩu hoặc bị hack tài khoản, hệ thống không thể thu hồi quyền ngay lập tức. Bảng này lưu phiên phía server để có thể thu hồi (`revoke`) quyền truy cập tức thì.
+- **Các trường quan trọng & lý do**:
+  - `refresh_token_hash`: Lưu bản mã băm SHA-256 của refresh token (nếu lộ DB, kẻ tấn công cũng không dùng được token để chiếm phiên).
+  - `revoked_at`: Đánh dấu thời điểm phiên bị hủy (khi đăng xuất, đổi mật khẩu, hoặc tài khoản bị Admin khóa).
+  - `expires_at`: Hạn sử dụng tuyệt đối của phiên đăng nhập.
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | id | uuid PK | session_id trong access token |
@@ -96,6 +111,13 @@ Mutable. Refresh xoay token trong transaction. Logout/đổi mật khẩu/khóa 
 
 ### 4.3. account_tokens — xác thực email/đặt lại mật khẩu
 
+- **Đại diện cho**: Mã token tạm thời phục vụ kích hoạt tài khoản hoặc đặt lại mật khẩu gửi qua email.
+- **Tại sao cần**: Tách biệt luồng xác thực một lần ra khỏi bảng `users`, tránh phình dữ liệu và dễ dàng quản lý hạn sử dụng của từng loại mã xác thực.
+- **Các trường quan trọng & lý do**:
+  - `purpose`: Phân biệt mục đích sử dụng (`VERIFY_EMAIL` hoặc `RESET_PASSWORD`) để ngăn việc dùng token xác thực email đi đổi mật khẩu.
+  - `token_hash`: Lưu digest SHA-256 của chuỗi token ngẫu nhiên để bảo mật.
+  - `consumed_at`: Đảm bảo token chỉ được sử dụng đúng 1 lần duy nhất; phát token mới sẽ vô hiệu hóa token cũ cùng mục đích.
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | id | uuid PK | Token record |
@@ -108,6 +130,13 @@ Mutable. Refresh xoay token trong transaction. Logout/đổi mật khẩu/khóa 
 Mutable. Phát token mới vô hiệu token cũ cùng purpose bằng consumed_at. Khóa bản ghi khi sử dụng.
 
 ### 4.4. companies — công ty
+
+- **Đại diện cho**: Pháp nhân doanh nghiệp tuyển dụng trên nền tảng.
+- **Tại sao cần**: Một công ty có thương hiệu, mã số thuế và quy chế hoạt động riêng, độc lập với các cá nhân nhân sự làm việc tại đó.
+- **Các trường quan trọng & lý do**:
+  - `registration_number`: Mã số thuế / Đăng ký kinh doanh duy nhất để Admin thẩm định pháp lý và phòng chống công ty mạo danh.
+  - `verification_status` & `verification_note`: Trạng thái xét duyệt thủ công của Admin (`PENDING`, `VERIFIED`, `REJECTED`), bắt buộc ghi chú lý do khi từ chối.
+  - `status` & `suspension_reason`: Quản lý tình trạng hoạt động (`ACTIVE`, `SUSPENDED`), tách rời khỏi kết quả duyệt ban đầu.
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
@@ -133,6 +162,12 @@ Mutable. Hồ sơ mới PENDING/ACTIVE. Mã đăng ký duy nhất không chứng
 
 ### 4.5. company_memberships — thành viên tuyển dụng
 
+- **Đại diện cho**: Mối quan hệ liên kết giữa một Nhà tuyển dụng (`RECRUITER`) và một Công ty cụ thể.
+- **Tại sao cần**: Quản lý việc nhân sự gia nhập hoặc rời khỏi công ty; một công ty có thể có nhiều recruiter nhưng mỗi công ty luôn có đúng 1 OWNER hoạt động.
+- **Các trường quan trọng & lý do**:
+  - `membership_role`: Phân cấp vai trò (`OWNER` hoặc `MEMBER`), xác định quyền quản trị công ty và mời thành viên.
+  - `left_at`: Đánh dấu ngày nhân sự rời công ty thay vì xóa cứng dòng dữ liệu, nhằm bảo toàn lịch sử các tin tuyển dụng và vòng phỏng vấn họ từng phụ trách.
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | id | uuid PK | Membership |
@@ -145,6 +180,14 @@ Mutable. Hồ sơ mới PENDING/ACTIVE. Mã đăng ký duy nhất không chứng
 Mutable. Unique partial(user_id) WHERE left_at IS NULL. Unique partial(company_id) WHERE membership_role='OWNER' AND left_at IS NULL. Tạo công ty và OWNER cùng transaction. Không cho xóa/chuyển OWNER trong MVP; admin không khóa OWNER cuối cùng khi còn vận hành công ty mà chưa đình chỉ công ty.
 
 ### 4.6. company_invitations — lời mời thành viên
+
+- **Đại diện cho**: Thư mời tham gia phòng tuyển dụng do `OWNER` công ty gửi tới email của nhân sự mới.
+- **Tại sao cần**: Đảm bảo nhân sự không thể tự nhận mình thuộc công ty; họ bắt buộc phải nhận được lời mời chính thức từ chủ sở hữu.
+- **Các trường quan trọng & lý do**:
+  - `email`: Địa chỉ nhận thư mời, chuẩn hóa để chống trùng lặp.
+  - `token_hash`: Chuỗi digest bảo mật đính kèm trong link kích hoạt mời.
+  - `expires_at`: Lời mời hết hạn sau 7 ngày kể từ khi tạo.
+  - `status`: Quản lý trạng thái (`PENDING`, `ACCEPTED`, `REVOKED`, `EXPIRED`).
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
@@ -162,6 +205,12 @@ Mutable. Unique partial(company_id,email) WHERE status='PENDING'. Trước gửi
 
 ### 4.7. locations — danh mục tỉnh/thành
 
+- **Đại diện cho**: Danh mục địa giới hành chính chuẩn hóa (Tỉnh/Thành phố tại Việt Nam).
+- **Tại sao cần**: Thống nhất địa điểm làm việc và nơi sinh sống của ứng viên/công ty, giúp bộ lọc tìm kiếm và thuật toán gợi ý việc làm hoạt động chính xác.
+- **Các trường quan trọng & lý do**:
+  - `code`: Mã định danh ổn định của tỉnh/thành theo nguồn chuẩn.
+  - `is_active`: Cho phép tắt kích hoạt địa điểm khi cần mà không phải xóa bản ghi đang được tham chiếu.
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | id | uuid PK | ID ổn định |
@@ -173,6 +222,12 @@ Mutable. Seed theo một phiên bản danh mục có ngày nguồn; không xóa 
 
 ### 4.8. job_categories — nhóm nghề
 
+- **Đại diện cho**: Danh mục các lĩnh vực/ngành nghề tuyển dụng (ví dụ: CNTT, Marketing, Kế toán).
+- **Tại sao cần**: Phân loại tin tuyển dụng để ứng viên tìm kiếm theo ngành nghề chuyên môn và phục vụ thống kê thị trường.
+- **Các trường quan trọng & lý do**:
+  - `name`: Tên nhóm nghề duy nhất.
+  - `is_active`: Kiểm soát việc bật/tắt nhóm nghề trong danh mục phẳng của MVP.
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | id | uuid PK | Nhóm nghề |
@@ -182,6 +237,12 @@ Mutable. Seed theo một phiên bản danh mục có ngày nguồn; không xóa 
 Mutable. Danh mục phẳng, seed/admin quản lý; không phân cấp nhiều tầng.
 
 ### 4.9. skills — kỹ năng chuẩn hóa
+
+- **Đại diện cho**: Danh mục các kỹ năng chuyên môn được hệ thống công nhận (ví dụ: Python, Docker, Figma).
+- **Tại sao cần**: Tránh tình trạng người dùng nhập tùy tiện các biến thể tên khác nhau làm sai lệch kết quả lọc và chấm điểm phù hợp của AI.
+- **Các trường quan trọng & lý do**:
+  - `normalized_name`: Tên kỹ năng đã trim và viết thường (ví dụ: `python`) có ràng buộc `UNIQUE` chống tạo trùng.
+  - `is_active`: Quản lý việc ngừng sử dụng kỹ năng mà không làm hỏng dữ liệu liên kết cũ.
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
@@ -193,6 +254,13 @@ Mutable. Danh mục phẳng, seed/admin quản lý; không phân cấp nhiều t
 Mutable. Không tự tạo skill từ text AI hoặc tag do client gửi.
 
 ### 4.10. applicants — hồ sơ ứng viên
+
+- **Đại diện cho**: Hồ sơ năng lực và nguyện vọng tìm việc của ứng viên trên nền tảng.
+- **Tại sao cần**: Lưu trữ thông tin nghề nghiệp tổng quát phục vụ tìm kiếm việc làm và tính toán độ phù hợp (matching), tách biệt với tài khoản đăng nhập.
+- **Các trường quan trọng & lý do**:
+  - `desired_salary_min` & `desired_salary_max`: Khoảng lương mong muốn (VND/tháng) để so khớp với mức lương tin tuyển dụng.
+  - `preferred_work_mode`: Nguyện vọng hình thức làm việc (`ONSITE`, `HYBRID`, `REMOTE`).
+  - `years_experience`: Tổng số năm kinh nghiệm thực tế.
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
@@ -212,6 +280,12 @@ Mutable. Hồ sơ tạo cùng tài khoản; không bắt buộc điền hết đ
 
 ### 4.11. applicant_educations — học vấn
 
+- **Đại diện cho**: Lịch sử học tập, bằng cấp và cơ sở đào tạo của ứng viên.
+- **Tại sao cần**: Một ứng viên có thể học nhiều trường hoặc nhiều chương trình đào tạo khác nhau (quan hệ 1-Nhiều).
+- **Các trường quan trọng & lý do**:
+  - `start_date` & `end_date`: Khoảng thời gian theo học; `end_date = NULL` thể hiện đang tiếp tục theo học.
+  - `institution` & `degree`: Tên trường đào tạo và bậc học/văn bằng đạt được.
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | id | uuid PK | Học vấn |
@@ -227,6 +301,12 @@ Mutable. end_date >= start_date; không khai báo ngày bắt đầu trong tươ
 
 ### 4.12. applicant_experiences — kinh nghiệm
 
+- **Đại diện cho**: Quá trình làm việc thực tế của ứng viên tại các công ty trước đây.
+- **Tại sao cần**: Cung cấp bức tranh toàn diện về lộ trình nghề nghiệp cho nhà tuyển dụng đánh giá.
+- **Các trường quan trọng & lý do**:
+  - `company_name`: Tên công ty do ứng viên tự khai báo (không tạo khóa ngoại sang bảng `companies`).
+  - `start_date` & `end_date`: Khoảng thời gian công tác; `end_date = NULL` thể hiện vị trí công việc hiện tại. Cho phép các giai đoạn chồng nhau để hỗ trợ làm song song nhiều công việc.
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | id | uuid PK | Kinh nghiệm |
@@ -241,6 +321,11 @@ Mutable. end_date >= start_date. Cho phép các giai đoạn chồng nhau để 
 
 ### 4.13. applicant_skills — kỹ năng hồ sơ
 
+- **Đại diện cho**: Bảng liên kết giữa Ứng viên và Danh mục kỹ năng chuẩn hóa (quan hệ Nhiều-Nhiều).
+- **Tại sao cần**: Gắn các kỹ năng ứng viên sở hữu vào hồ sơ để hệ thống và AI thực hiện so khớp với yêu cầu của tin tuyển dụng.
+- **Các trường quan trọng & lý do**:
+  - Khóa chính ghép `(applicant_id, skill_id)`: Đảm bảo không gắn trùng lặp một kỹ năng vào một hồ sơ; giới hạn tối đa 50 kỹ năng/hồ sơ.
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | applicant_id | uuid FK → applicants.id | PK ghép |
@@ -249,6 +334,13 @@ Mutable. end_date >= start_date. Cho phép các giai đoạn chồng nhau để 
 Không có id/timestamp mặc định. PK(applicant_id,skill_id). Tối đa 50 skill/hồ sơ; xóa liên kết không xóa danh mục.
 
 ### 4.14. cv_documents — nội dung CV theo mẫu
+
+- **Đại diện cho**: Bản soạn thảo CV trực tuyến do ứng viên xây dựng bằng công cụ tạo CV (CV Builder) trên website.
+- **Tại sao cần**: Cho phép ứng viên lưu trữ, chỉnh sửa linh hoạt và chọn mẫu giao diện để xuất ra file PDF hoàn chỉnh.
+- **Các trường quan trọng & lý do**:
+  - `content (jsonb)`: Lưu toàn bộ cấu trúc CV theo schema chuẩn (`contact`, `summary`, `education`, `experience`, `skills`, `projects`), đã được validate chặt chẽ.
+  - `revision`: Số phiên bản tăng dần mỗi lần chỉnh sửa, dùng để truy vết khi xuất bản file.
+  - `template_code`: Mã mẫu giao diện áp dụng (MVP sử dụng mẫu cố định `BASIC_V1`).
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
@@ -263,6 +355,15 @@ Không có id/timestamp mặc định. PK(applicant_id,skill_id). Tối đa 50 s
 Mutable. content chứa contact{name,email,phone}, summary, education[], experience[], skills[], projects[]. Validate kiểu/độ dài; không nhận HTML, script, URL tải ảnh/font. Khởi tạo có thể sao chép hồ sơ; sửa CV không sửa ngược hồ sơ.
 
 ### 4.15. resumes — file CV bất biến
+
+- **Đại diện cho**: File tài liệu CV thực tế (PDF, DOC, DOCX) sẵn sàng dùng để nộp đơn ứng tuyển.
+- **Tại sao cần**: Là tài liệu pháp lý khi tuyển dụng. File CV mang tính **bất biến (immutable)**; khi nộp đơn, nhà tuyển dụng phải luôn xem đúng bản CV tại thời điểm đó kể cả ứng viên có chỉnh sửa hồ sơ sau này.
+- **Các trường quan trọng & lý do**:
+  - `source`: Nguồn gốc CV (`UPLOAD` từ máy tính hoặc `GENERATED` từ bản soạn thảo `cv_documents`).
+  - `storage_key`: Đường dẫn file trên hạ tầng lưu trữ riêng tư (private storage).
+  - `sha256`: Mã băm kiểm tra tính toàn vẹn của tệp tin.
+  - `is_default`: Đánh dấu CV mặc định để nộp nhanh.
+  - `deleted_at`: Xóa mềm để ẩn khỏi danh sách lựa chọn của ứng viên nhưng vẫn bảo toàn file nếu đã có đơn ứng tuyển tham chiếu.
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
@@ -283,6 +384,14 @@ Mutable. content chứa contact{name,email,phone}, summary, education[], experie
 Mutable chỉ title/is_default/deleted_at. File và source metadata bất biến. CHECK source/generated fields nhất quán. Unique partial(applicant_id) WHERE is_default AND deleted_at IS NULL; CHECK deleted_at IS NULL OR NOT is_default. CV ẩn nhưng đã nộp vẫn tải được qua quyền application trong thời hạn lưu dữ liệu.
 
 ### 4.16. jobs — tin tuyển dụng
+
+- **Đại diện cho**: Một vị trí công việc cụ thể mà doanh nghiệp cần tuyển nhân sự.
+- **Tại sao cần**: Là trung tâm hoạt động kinh doanh của sàn tuyển dụng, kết nối nhu cầu tìm việc và tuyển dụng.
+- **Các trường quan trọng & lý do**:
+  - `status`: Quản lý vòng đời chặt chẽ (`DRAFT`, `PENDING_APPROVAL`, `REJECTED`, `PUBLISHED`, `CLOSED`). Tin đăng chỉ xuất bản ra công chúng khi được Admin duyệt.
+  - `salary_min`, `salary_max`, `is_negotiable`: Minh bạch hóa mức lương. Nếu `is_negotiable = true` thì hai mức lương để trống; ngược lại bắt buộc có khoảng lương cụ thể tính theo VND/tháng.
+  - `deadline`: Hạn nộp hồ sơ, hết hạn hệ thống sẽ tự động đóng tin.
+  - `version`: Khóa lạc quan (Optimistic Locking) chống lỗi ghi đè dữ liệu khi nhiều người cùng thao tác.
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
@@ -317,6 +426,11 @@ Mutable có kiểm soát. Draft cho phép thiếu trường. Khi submit bắt bu
 
 ### 4.17. job_skills — yêu cầu kỹ năng
 
+- **Đại diện cho**: Danh sách các kỹ năng chuẩn hóa mà công việc yêu cầu ứng viên cần có (quan hệ Nhiều-Nhiều giữa Jobs và Skills).
+- **Tại sao cần**: Đóng vai trò làm tiêu chí chính để bộ lọc tìm kiếm và thuật toán AI tính toán độ phù hợp (matching score) giữa ứng viên và công việc.
+- **Các trường quan trọng & lý do**:
+  - Khóa chính ghép `(job_id, skill_id)`: Ràng buộc mỗi kỹ năng chỉ gắn một lần vào tin tuyển dụng; khi gửi duyệt bắt buộc có từ 1 đến 30 kỹ năng.
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | job_id | uuid FK → jobs.id | PK ghép |
@@ -325,6 +439,13 @@ Mutable có kiểm soát. Draft cho phép thiếu trường. Khi submit bắt bu
 PK(job_id,skill_id), không id/timestamp. Submit yêu cầu 1–30 skill active. Là tiêu chí matching, không phải cổng tự loại ứng viên.
 
 ### 4.18. job_status_history — lịch sử tin
+
+- **Đại diện cho**: Nhật ký kiểm toán mọi sự kiện chuyển đổi trạng thái của tin tuyển dụng.
+- **Tại sao cần**: Minh bạch hóa quy trình vận hành và kiểm duyệt, giúp giải trình khi tin bị từ chối hoặc bị đóng bất thường.
+- **Các trường quan trọng & lý do**:
+  - `from_status` & `to_status`: Ghi nhận trạng thái nguồn và trạng thái đích.
+  - `changed_by` & `actor_type`: Người thực hiện thay đổi (`USER` hoặc `SYSTEM`).
+  - `reason`: Bắt buộc nhập lý do khi Admin từ chối phê duyệt hoặc khi đóng tin tuyển dụng.
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
@@ -339,6 +460,15 @@ PK(job_id,skill_id), không id/timestamp. Submit yêu cầu 1–30 skill active.
 Append-only. created_at là thời điểm đổi. Đồng transaction với jobs; lưu từ NULL đến DRAFT khi tạo.
 
 ### 4.19. applications — đơn ứng tuyển
+
+- **Đại diện cho**: Hồ sơ ứng tuyển của một ứng viên vào một tin tuyển dụng cụ thể.
+- **Tại sao cần**: Là thực thể điều phối trung tâm của toàn bộ hệ thống quản lý ứng viên (Applicant Tracking System - ATS).
+- **Các trường quan trọng & lý do**:
+  - `UNIQUE(applicant_id, job_id)`: Chặn spam — 1 ứng viên chỉ được nộp đúng 1 đơn cho 1 công việc trong suốt lịch sử.
+  - `contact_name, contact_email, contact_phone`: **Snapshot thông tin liên hệ** tại thời điểm nộp, không bị ảnh hưởng nếu ứng viên sửa thông tin cá nhân sau này.
+  - `resume_id`: Liên kết trực tiếp tới file CV đã chọn khi nộp.
+  - `status`: Quản lý tiến trình xử lý qua pipeline (`APPLIED`, `SCREENING`, `INTERVIEW`, `OFFER`, `HIRED`, `REJECTED`, `WITHDRAWN`).
+  - `version`: Khóa lạc quan chống tranh chấp khi ứng viên và recruiter cùng thao tác đồng thời.
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
@@ -358,6 +488,13 @@ Mutable chỉ trạng thái/version/ended_at. created_at là applied_at, không 
 
 ### 4.20. application_status_history — lịch sử đơn
 
+- **Đại diện cho**: Nhật ký từng bước di chuyển của đơn ứng tuyển trong quy trình tuyển dụng.
+- **Tại sao cần**: Cung cấp bức tranh toàn cảnh để ứng viên theo dõi lộ trình hồ sơ, đồng thời giúp doanh nghiệp đo lường hiệu suất tuyển dụng.
+- **Các trường quan trọng & lý do**:
+  - `from_status` & `to_status`: Truy vết các mốc thay đổi trạng thái trong pipeline.
+  - `changed_by`: Ghi nhận danh tính người chuyển trạng thái (Recruiter, Applicant hoặc Hệ thống).
+  - `reason`: Lý do bắt buộc khi từ chối hồ sơ (`REJECTED`), ứng viên rút đơn (`WITHDRAWN`), hoặc chuyển ngược lại phỏng vấn để thương lượng lại offer.
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | id | uuid PK | Sự kiện |
@@ -372,6 +509,12 @@ Append-only. Không lưu feedback nội bộ vào reason công khai. Applicant x
 
 ### 4.21. application_notes — ghi chú nội bộ
 
+- **Đại diện cho**: Các nhận xét, đánh giá riêng tư giữa các Recruiter trong cùng công ty về một hồ sơ ứng viên.
+- **Tại sao cần**: Tạo không gian trao đổi nội bộ cho đội ngũ tuyển dụng mà **ứng viên tuyệt đối không thể nhìn thấy**.
+- **Các trường quan trọng & lý do**:
+  - `author_id`: Danh tính recruiter tạo ghi chú.
+  - `content`: Nội dung nhận xét chi tiết (chế độ append-only, ghi chú tiếp theo để đính chính thay vì sửa bản ghi cũ).
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | id | uuid PK | Ghi chú |
@@ -382,6 +525,14 @@ Append-only. Không lưu feedback nội bộ vào reason công khai. Applicant x
 Append-only trong MVP; sửa sai bằng ghi chú tiếp theo. Không trả applicant hoặc public.
 
 ### 4.22. interviews — các vòng phỏng vấn
+
+- **Đại diện cho**: Lịch hẹn một buổi phỏng vấn cụ thể giữa doanh nghiệp và ứng viên (Vòng 1, Vòng 2, v.v.).
+- **Tại sao cần**: Lên lịch, quản lý thời gian, hình thức và lưu kết quả đánh giá vòng phỏng vấn.
+- **Các trường quan trọng & lý do**:
+  - `round_number`: Thứ tự vòng phỏng vấn (1, 2, ...), không cho phép trùng số vòng trong cùng một đơn.
+  - `mode` (`ONLINE` / `OFFLINE`): Bắt buộc có `meeting_url` nếu Online hoặc có `address` nếu Offline.
+  - `status` (`SCHEDULED`, `COMPLETED`, `CANCELLED`, `NO_SHOW`): Quản lý trạng thái buổi phỏng vấn.
+  - `result` (`PASS`, `FAIL`, `UNDECIDED`): Kết quả đánh giá chỉ được cập nhật sau khi buổi phỏng vấn đã hoàn tất.
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
@@ -404,6 +555,14 @@ Append-only trong MVP; sửa sai bằng ghi chú tiếp theo. Không trả appli
 Mutable. Không tái sử dụng số vòng bị hủy. MVP chặn trùng lịch SCHEDULED của cùng application; không quản lý lịch interviewer giữa các công ty. Khóa application khi kiểm tra khoảng giờ giao nhau.
 
 ### 4.23. offers — các lần phát hành offer
+
+- **Đại diện cho**: Lời mời nhận việc và các điều kiện đãi ngộ chính thức mà doanh nghiệp gửi tới ứng viên.
+- **Tại sao cần**: Pháp lý hóa bước thỏa thuận lao động, cho phép ứng viên xác nhận chấp thuận hoặc từ chối có lưu vết.
+- **Các trường quan trọng & lý do**:
+  - `sequence_number`: Hỗ trợ đàm phán nhiều lần nối tiếp (nếu offer lần 1 bị từ chối, recruiter có thể gửi offer lần 2 với đãi ngộ mới).
+  - `salary`, `start_date`, `response_deadline`: Mức lương cụ thể (gross VND/tháng), ngày dự kiến nhận việc và hạn chót phản hồi.
+  - `status`: Quản lý tiến trình (`DRAFT`, `SENT`, `ACCEPTED`, `REJECTED`, `WITHDRAWN`, `EXPIRED`).
+  - Ràng buộc: Tối đa 1 offer ở trạng thái `DRAFT` hoặc `SENT`, và tối đa 1 offer `ACCEPTED` trên mỗi đơn ứng tuyển.
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
@@ -428,6 +587,13 @@ Mutable theo state. Unique partial(application_id) WHERE status IN ('DRAFT','SEN
 
 ### 4.24. notifications — thông báo trong ứng dụng
 
+- **Đại diện cho**: Hộp thư thông báo trực tiếp trên giao diện website (hình quả chuông in-app).
+- **Tại sao cần**: Cập nhật tức thời cho người dùng về các biến động liên quan đến họ (lịch phỏng vấn mới, kết quả duyệt tin, nhận offer).
+- **Các trường quan trọng & lý do**:
+  - `event_key`: Khóa định danh sự kiện duy nhất, chống tạo trùng nhiều thông báo cho cùng một hành động.
+  - `read_at`: Đánh dấu thời điểm người dùng đã bấm xem thông báo.
+  - `resource_type` & `resource_id`: Điều hướng người dùng tới đối tượng liên quan khi click vào thông báo.
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | id | uuid PK | Thông báo |
@@ -443,6 +609,13 @@ Mutable theo state. Unique partial(application_id) WHERE status IN ('DRAFT','SEN
 Mutable read_at. UNIQUE(user_id,event_key). Bấm liên kết vẫn kiểm tra quyền ở API tài nguyên.
 
 ### 4.25. email_deliveries — hàng đợi email
+
+- **Đại diện cho**: Hàng đợi các tác vụ gửi email nền (Background Queue).
+- **Tại sao cần**: Gửi email qua SMTP có độ trễ lớn và rủi ro gián đoạn mạng. Bảng này giúp API phản hồi tức thì cho người dùng, trong khi tiến trình nền (Worker) chịu trách nhiệm gửi và tự động thử lại (retry) khi gặp lỗi.
+- **Các trường quan trọng & lý do**:
+  - `status`, `attempts`, `next_attempt_at`: Quản lý cơ chế retry thông minh (tối đa 5 lần theo chu kỳ dãn cách 1/5/15/60 phút).
+  - `locked_until`: Khóa tạm thời (lease 2 phút) khi worker đang xử lý nhằm ngăn ngừa 2 worker cùng gửi một email.
+  - `payload_ciphertext`: Nội dung email được mã hóa bảo mật trong database và tự động xóa sau 7 ngày gửi thành công.
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
@@ -464,6 +637,14 @@ Mutable. Khóa mã hóa nằm ngoài DB; payload bị xóa hoặc thay bằng pa
 
 ### 4.26. audit_logs — sự kiện nhạy cảm
 
+- **Đại diện cho**: Hộp đen an ninh ghi vết các thao tác có độ nhạy cảm cao hoặc tiềm ẩn rủi ro vi phạm dữ liệu.
+- **Tại sao cần**: Phục vụ công tác thanh tra, bảo mật và truy cứu trách nhiệm pháp lý khi xảy ra sự cố.
+- **Các trường quan trọng & lý do**:
+  - `action`: Hành động nhạy cảm (`COMPANY_REVIEW`, `JOB_APPROVE`, `CV_DOWNLOAD_AUTHORIZED`, v.v.).
+  - `actor_id` & `request_id`: Xác định ai thực hiện và mã request tương ứng.
+  - `outcome`: Kết quả thực thi (`SUCCESS`, `DENIED`, `FAILURE`).
+  - Bảng chỉ cho phép ghi mới (`append-only`), tuyệt đối không lưu dữ liệu nhạy cảm (mật khẩu, token thô, file CV) vào metadata.
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | id | uuid PK | Sự kiện |
@@ -478,6 +659,15 @@ Mutable. Khóa mã hóa nằm ngoài DB; payload bị xóa hoặc thay bằng pa
 Append-only. CV_DOWNLOAD_AUTHORIZED ghi trước cấp stream; không khẳng định client nhận xong file. Log từ chối ngoài transaction bị rollback của nghiệp vụ.
 
 ### 4.27. ai_operations — cache và theo dõi AI
+
+- **Đại diện cho**: Nhật ký và bộ nhớ đệm (Cache) của các lần hệ thống gọi API mô hình ngôn ngữ lớn (LLM).
+- **Tại sao cần**:
+  1. Tiết kiệm chi phí: Cache kết quả trong 24 giờ để tránh gọi lại API bên ngoài cho cùng một nội dung phân tích.
+  2. Đo lường chi phí: Ghi nhận số lượng token tiêu thụ để kiểm soát hóa đơn AI.
+- **Các trường quan trọng & lý do**:
+  - `feature`: Tính năng ứng dụng AI (`MATCH_EXPLANATION` giải thích độ phù hợp CV, hoặc `JD_DRAFT` gợi ý mô tả công việc).
+  - `input_hash`: Mã băm nội dung đầu vào đã chuẩn hóa dùng để đối soát nhanh trong cache.
+  - `input_tokens` & `output_tokens`: Số token tiêu thụ thực tế.
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
@@ -501,6 +691,12 @@ Append-only. Không lưu prompt thô/API key. Cache lookup theo requested_by,fea
 
 ### 4.28. ai_rate_windows — giới hạn AI dùng chung
 
+- **Đại diện cho**: Hạn ngạch (Quota) tiêu thụ AI của từng người dùng theo từng ngày.
+- **Tại sao cần**: Ngăn chặn người dùng spam tính năng AI gây cạn kiệt ngân sách hoặc làm nghẽn tài nguyên hệ thống.
+- **Các trường quan trọng & lý do**:
+  - Khóa chính ghép `(user_id, feature, window_start)`: Theo dõi lượt gọi của từng user cho từng tính năng theo chu kỳ ngày (đầu ngày UTC).
+  - `request_count`: Số lượt đã gọi trong ngày (mặc định giới hạn tối đa 20 lần/user/tính năng/ngày).
+
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|
 | user_id | uuid FK → users.id | PK ghép |
@@ -512,6 +708,13 @@ Append-only. Không lưu prompt thô/API key. Cache lookup theo requested_by,fea
 Không id/timestamp. Tăng atomically trước gọi provider, giới hạn cấu hình mặc định 20 lần/user/feature/ngày; cache hit không tính. Giới hạn concurrency/timeout ở dịch vụ. Xóa window cũ sau 7 ngày.
 
 ### 4.29. security_rate_windows — giới hạn endpoint nhạy cảm
+
+- **Đại diện cho**: Hạn mức tần suất (Rate Limit) cho các cổng API nhạy cảm về bảo mật (Đăng nhập, Đăng ký, Đổi mật khẩu, Gửi lại xác thực).
+- **Tại sao cần**: Phòng thủ chống lại các cuộc tấn công dò mật khẩu tự động (brute-force), tấn công từ chối dịch vụ (DoS) hoặc spam làm nghẽn dịch vụ gửi mail.
+- **Các trường quan trọng & lý do**:
+  - `scope`: Phạm vi áp dụng giới hạn (`LOGIN`, `REGISTER`, `RESET`, `VERIFY_RESEND`).
+  - `subject_hash`: Mã băm HMAC của IP hoặc Email (bảo vệ quyền riêng tư người dùng trong log giới hạn).
+  - `window_start` & `request_count`: Bộ đếm số lần yêu cầu trong cửa sổ 15 phút.
 
 | Cột | Kiểu | Ý nghĩa/ràng buộc |
 |---|---|---|

@@ -173,8 +173,60 @@ Chạy một file SQL:
 
 ```bash
 psql -h localhost -U jobportal -d jobportal \
-  -f scripts/seed-data.sql
+  -f duong/dan/toi/file.sql
 ```
+
+Thay `duong/dan/toi/file.sql` bằng đường dẫn tới file SQL **đã tồn tại**. Lệnh này thực thi nội dung file trên database đang kết nối; nên đọc file trước khi chạy.
+
+### 3.1. Xem và chọn từng bảng để thao tác
+
+Sau khi đăng nhập và thấy `jobportal=>`, chạy các lệnh sau **trong `psql`**:
+
+```sql
+\conninfo
+\dt public.*
+\d+ public.skills
+SELECT id, name, normalized_name, is_active FROM public.skills LIMIT 10;
+```
+
+- `\conninfo`: xác nhận đang kết nối đúng database và role trước khi sửa dữ liệu.
+- `\dt public.*`: liệt kê các bảng trong schema `public`. `alembic_version` là bảng Alembic dùng theo dõi migration, không phải bảng nghiệp vụ.
+- `\d+ public.skills`: xem cột, kiểu dữ liệu, khóa, index và ràng buộc của bảng `skills`.
+- `SELECT ... FROM public.skills`: đọc dữ liệu bảng đó; `LIMIT 10` chỉ lấy tối đa 10 dòng. Nếu không có kết quả thì bảng đang rỗng.
+
+Muốn xem bảng khác, thay `skills` bằng tên bảng trong kết quả `\dt public.*`. Ví dụ `\d+ public.jobs` rồi `SELECT * FROM public.jobs LIMIT 10;`. Có thể xem tên cột trước bằng `\d+` để chọn đúng cột trong câu `SELECT`. `psql` không có lệnh “mở bảng” như giao diện SQL Server: `\d` xem cấu trúc, còn `SELECT` xem các dòng dữ liệu.
+
+### 3.2. Ví dụ thêm, sửa và xóa một dòng trong `skills`
+
+Chỉ thử trên database phát triển. Bảng `skills` có `id` kiểu UUID; khi thêm bằng SQL trực tiếp, hãy **cấp `id` rõ ràng** vì giá trị mặc định `uuid4` của model được Python/SQLAlchemy tạo khi ứng dụng ghi dữ liệu, không phải mặc định tại PostgreSQL.
+
+```sql
+INSERT INTO public.skills (id, name, normalized_name)
+VALUES ('d42d9b0e-5935-4f54-8a5c-8d15335fa93a', 'Python demo', 'python-demo');
+
+SELECT id, name, normalized_name
+FROM public.skills
+WHERE id = 'd42d9b0e-5935-4f54-8a5c-8d15335fa93a';
+
+UPDATE public.skills
+SET name = 'Python demo (updated)', updated_at = now()
+WHERE id = 'd42d9b0e-5935-4f54-8a5c-8d15335fa93a';
+
+DELETE FROM public.skills
+WHERE id = 'd42d9b0e-5935-4f54-8a5c-8d15335fa93a';
+```
+
+Các câu SQL kết thúc bằng `;`. `WHERE id = ...` giới hạn `UPDATE`/`DELETE` vào đúng một dòng; **không bỏ `WHERE`** nếu không muốn tác động cả bảng. Nếu `normalized_name` hoặc `id` đã tồn tại, `INSERT` sẽ bị chặn bởi ràng buộc unique/PK. Nếu một bảng khác đã tham chiếu kỹ năng này, `DELETE` có thể bị FK chặn; không xóa dữ liệu thật chỉ để thử lệnh.
+
+Để thử thay đổi mà không lưu, có thể bọc các lệnh sửa dữ liệu trong transaction:
+
+```sql
+BEGIN;
+-- Chạy INSERT hoặc UPDATE thử, rồi SELECT để kiểm tra.
+ROLLBACK;
+```
+
+`ROLLBACK` hủy các thay đổi kể từ `BEGIN`; chỉ dùng `COMMIT;` khi thực sự muốn lưu. Với dữ liệu do backend quản lý, ưu tiên thao tác qua API/SQLAlchemy để các quy tắc nghiệp vụ và lịch sử liên quan được xử lý đúng.
 
 ## 4. Kết nối từ backend FastAPI
 
@@ -202,12 +254,12 @@ DATABASE_URL=postgresql+psycopg://jobportal:change-me@postgres:5432/jobportal
 
 Dự án nên quản lý schema bằng SQLAlchemy và Alembic thay vì tạo bảng thủ công trong `psql`.
 
-Quy trình dự kiến:
+Alembic đã được cấu hình và các migration hiện có nằm trong `src/backend/migrations/versions/`. Khi **thay đổi định nghĩa model**, chạy từ thư mục backend:
 
 ```bash
 cd /Users/mong/Documents/ComputerScience/AI4SE/job_portal/src/backend
 source .venv/bin/activate
-alembic revision --autogenerate -m "create initial schema"
+alembic revision --autogenerate -m "describe schema change"
 alembic upgrade head
 ```
 
@@ -215,7 +267,28 @@ alembic upgrade head
 - Phải đọc lại migration được sinh trước khi chạy.
 - `upgrade head`: áp dụng tất cả migration chưa chạy.
 
-Alembic chưa được cấu hình trong scaffold hiện tại; cần thêm dependency và cấu hình sau khi có SQLAlchemy models ban đầu.
+Nếu chỉ cần đưa một database mới lên schema hiện tại, **không tạo revision mới**: chỉ chạy `alembic upgrade head`. Kiểm tra phiên bản đang áp dụng bằng `alembic current` hoặc `SELECT * FROM alembic_version;` trong `psql`.
+
+### 5.1. Dữ liệu mẫu để luyện truy vấn
+
+Script `src/backend/scripts/seed_demo.py` tạo 5 bản ghi liên kết hợp lệ cho **mỗi bảng nghiệp vụ**, riêng `users` tạo 11 tài khoản (5 applicant, 5 recruiter, 1 admin) để đúng vai trò và quan hệ với các bảng khác. Không thêm bản ghi vào `alembic_version` vì đây là bảng quản lý migration. Chạy từ thư mục backend khi database mới đã ở migration hiện tại và **tất cả bảng nghiệp vụ còn rỗng**:
+
+```bash
+cd /Users/mong/Documents/ComputerScience/AI4SE/job_portal/src/backend
+.venv/bin/python scripts/seed_demo.py
+```
+
+Script từ chối chạy nếu sai database, sai migration hoặc bất kỳ bảng nghiệp vụ nào đã có dữ liệu. Toàn bộ thao tác dùng một transaction nên lỗi ở giữa sẽ rollback, không tạo bộ dữ liệu dở dang. Database local hiện đã được seed; **không cần chạy lại** trừ khi bạn tạo một database phát triển mới hoàn toàn rỗng.
+
+Thử xem dữ liệu bằng `psql`:
+
+```sql
+SELECT id, name, normalized_name FROM public.skills;
+SELECT id, title, status FROM public.jobs;
+SELECT id, contact_name, status FROM public.applications;
+```
+
+Tất cả email có đuôi `.invalid` và mật khẩu bị vô hiệu hóa: các tài khoản này **không đăng nhập được**. Token/phiên đã hết hạn, email và kết quả AI chỉ là bản ghi giả; script không gửi email hay gọi AI. `resumes.storage_key` trỏ đến file placeholder **không tồn tại**, vì vậy không dùng các bản ghi này để thử tải CV. Dữ liệu này chỉ dành cho phát triển và luyện truy vấn, không dùng trong production.
 
 ## 6. Sao lưu và khôi phục
 

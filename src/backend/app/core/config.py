@@ -10,6 +10,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 class Settings(BaseSettings):
     """Định nghĩa và kiểm tra các biến cấu hình mà backend cần sử dụng."""
 
+
     # Đọc biến môi trường của hệ điều hành và file src/backend/.env.
     # extra="ignore" cho phép .env chứa thêm JWT/SMTP mà class này chưa dùng tới.
     model_config = SettingsConfigDict(
