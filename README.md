@@ -2,7 +2,7 @@
 
 Scaffold kiến trúc cho hệ thống tuyển dụng 3 vai trò: Admin, Recruiter và Applicant.
 
-> Trạng thái hiện tại: **architecture scaffold only**. Repository chứa cấu trúc, bootstrap tối thiểu và tài liệu; chưa có source code nghiệp vụ.
+> Trạng thái hiện tại: **database schema hoàn chỉnh, API nghiệp vụ chưa triển khai**. Backend có model và migration cho 29 bảng trong ERD; FastAPI hiện mới cung cấp health check.
 
 ## Tech stack dự kiến
 
@@ -47,6 +47,16 @@ npm run dev
 API health check: `http://localhost:5000/api/health`. FastAPI documentation: `http://localhost:5000/docs`. Frontend: `http://localhost:5173`.
 
 Trước khi chạy backend trực tiếp ngoài Docker, đổi hostname `postgres` trong `src/backend/.env` thành `localhost`.
+
+Sau khi tạo database PostgreSQL và cấu hình `DATABASE_URL`, tạo/cập nhật bảng bằng:
+
+```bash
+cd src/backend
+source .venv/bin/activate
+alembic upgrade head
+```
+
+Schema hiện được quản lý qua `app/infrastructure/persistence/models/` và `migrations/versions/`. Các quy tắc liên quan quyền, trạng thái, file CV và transaction cần được thực hiện trong use case/API; chỉ có model và bảng chưa tạo ra chức năng nghiệp vụ.
 
 ## Quy ước phát triển
 
