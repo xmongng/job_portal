@@ -186,7 +186,7 @@ Sau khi đăng nhập và thấy `jobportal=>`, chạy các lệnh sau **trong `
 \conninfo
 \dt public.*
 \d+ public.skills
-SELECT id, name, normalized_name, is_active FROM public.skills LIMIT 10;
+SELECT id, name, created_at FROM public.skills LIMIT 10;
 ```
 
 - `\conninfo`: xác nhận đang kết nối đúng database và role trước khi sửa dữ liệu.
@@ -201,22 +201,22 @@ Muốn xem bảng khác, thay `skills` bằng tên bảng trong kết quả `\dt
 Chỉ thử trên database phát triển. Bảng `skills` có `id` kiểu UUID; khi thêm bằng SQL trực tiếp, hãy **cấp `id` rõ ràng** vì giá trị mặc định `uuid4` của model được Python/SQLAlchemy tạo khi ứng dụng ghi dữ liệu, không phải mặc định tại PostgreSQL.
 
 ```sql
-INSERT INTO public.skills (id, name, normalized_name)
-VALUES ('d42d9b0e-5935-4f54-8a5c-8d15335fa93a', 'Python demo', 'python-demo');
+INSERT INTO public.skills (id, name)
+VALUES ('d42d9b0e-5935-4f54-8a5c-8d15335fa93a', 'Python demo');
 
-SELECT id, name, normalized_name
+SELECT id, name
 FROM public.skills
 WHERE id = 'd42d9b0e-5935-4f54-8a5c-8d15335fa93a';
 
 UPDATE public.skills
-SET name = 'Python demo (updated)', updated_at = now()
+SET name = 'Python demo (updated)'
 WHERE id = 'd42d9b0e-5935-4f54-8a5c-8d15335fa93a';
 
 DELETE FROM public.skills
 WHERE id = 'd42d9b0e-5935-4f54-8a5c-8d15335fa93a';
 ```
 
-Các câu SQL kết thúc bằng `;`. `WHERE id = ...` giới hạn `UPDATE`/`DELETE` vào đúng một dòng; **không bỏ `WHERE`** nếu không muốn tác động cả bảng. Nếu `normalized_name` hoặc `id` đã tồn tại, `INSERT` sẽ bị chặn bởi ràng buộc unique/PK. Nếu một bảng khác đã tham chiếu kỹ năng này, `DELETE` có thể bị FK chặn; không xóa dữ liệu thật chỉ để thử lệnh.
+Các câu SQL kết thúc bằng `;`. `WHERE id = ...` giới hạn `UPDATE`/`DELETE` vào đúng một dòng; **không bỏ `WHERE`** nếu không muốn tác động cả bảng. Nếu `name` hoặc `id` đã tồn tại, `INSERT` sẽ bị chặn bởi ràng buộc unique/PK. Nếu một bảng khác đã tham chiếu kỹ năng này, `DELETE` có thể bị FK chặn; không xóa dữ liệu thật chỉ để thử lệnh.
 
 Để thử thay đổi mà không lưu, có thể bọc các lệnh sửa dữ liệu trong transaction:
 
@@ -226,7 +226,19 @@ BEGIN;
 ROLLBACK;
 ```
 
-`ROLLBACK` hủy các thay đổi kể từ `BEGIN`; chỉ dùng `COMMIT;` khi thực sự muốn lưu. Với dữ liệu do backend quản lý, ưu tiên thao tác qua API/SQLAlchemy để các quy tắc nghiệp vụ và lịch sử liên quan được xử lý đúng.
+`ROLLBACK` hủy các thay đổi kể từ `BEGIN`; chỉ dùng `COMMIT;` khi thực sự muốn lưu. Với dữ liệu do backend quản lý, ưu tiên thao tác qua API/SQLAlchemy để các quy tắc nghiệp vụ được xử lý đúng.
+
+### 3.3. Kiểm tra stored functions
+
+```sql
+\df public.*
+\sf public.list_public_jobs
+\sf public.get_public_job
+SELECT * FROM public.list_public_jobs();
+SELECT to_regprocedure('public.get_public_job(uuid)');
+```
+
+`\df` liệt kê function, `\sf` xem SQL bên trong, còn `to_regprocedure` trả `NULL` nếu function với đúng kiểu tham số chưa tồn tại.
 
 ## 4. Kết nối từ backend FastAPI
 
@@ -257,7 +269,7 @@ Dự án nên quản lý schema bằng SQLAlchemy và Alembic thay vì tạo b�
 Alembic đã được cấu hình và các migration hiện có nằm trong `src/backend/migrations/versions/`. Khi **thay đổi định nghĩa model**, chạy từ thư mục backend:
 
 ```bash
-cd /Users/mong/Documents/ComputerScience/AI4SE/job_portal/src/backend
+cd /Users/mong/Documents/ComputerScience/job_portal/src/backend
 source .venv/bin/activate
 alembic revision --autogenerate -m "describe schema change"
 alembic upgrade head
@@ -271,10 +283,10 @@ Nếu chỉ cần đưa một database mới lên schema hiện tại, **không 
 
 ### 5.1. Dữ liệu mẫu để luyện truy vấn
 
-Script `src/backend/scripts/seed_demo.py` tạo 5 bản ghi liên kết hợp lệ cho **mỗi bảng nghiệp vụ**, riêng `users` tạo 11 tài khoản (5 applicant, 5 recruiter, 1 admin) để đúng vai trò và quan hệ với các bảng khác. Không thêm bản ghi vào `alembic_version` vì đây là bảng quản lý migration. Chạy từ thư mục backend khi database mới đã ở migration hiện tại và **tất cả bảng nghiệp vụ còn rỗng**:
+Script `src/backend/scripts/seed_demo.py` tạo 5 bản ghi liên kết hợp lệ cho **14 bảng**, riêng `users` tạo 11 tài khoản (5 applicant, 5 recruiter, 1 admin). Không thêm bản ghi vào `alembic_version` vì đây là bảng quản lý migration. Chạy khi database đã ở migration hiện tại và tất cả bảng nghiệp vụ còn rỗng:
 
 ```bash
-cd /Users/mong/Documents/ComputerScience/AI4SE/job_portal/src/backend
+cd /Users/mong/Documents/ComputerScience/job_portal/src/backend
 .venv/bin/python scripts/seed_demo.py
 ```
 
@@ -283,7 +295,7 @@ Script từ chối chạy nếu sai database, sai migration hoặc bất kỳ b�
 Thử xem dữ liệu bằng `psql`:
 
 ```sql
-SELECT id, name, normalized_name FROM public.skills;
+SELECT id, name, created_at FROM public.skills;
 SELECT id, title, status FROM public.jobs;
 SELECT id, contact_name, status FROM public.applications;
 ```

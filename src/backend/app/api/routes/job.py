@@ -1,65 +1,56 @@
-# Lấy thời gian UTC hiện tại để lọc các tin tuyển dụng chưa hết hạn.
-from datetime import UTC, datetime
+"""API công khai để xem danh sách và chi tiết tin tuyển dụng."""
 
-# ID của bảng jobs dùng kiểu UUID.
+from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
-# APIRouter gom các endpoint liên quan đến tin tuyển dụng.
-from fastapi import APIRouter
-
-# BaseModel xác định cấu trúc JSON trả về.
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy import text
 
-# select xây dựng câu truy vấn SQLAlchemy.
-from sqlalchemy import select
-
-# FastAPI cấp và đóng database session cho từng request.
 from app.api.dependencies.database import DatabaseSession
 
-# Hai model đại diện cho bảng companies và jobs.
-from app.infrastructure.persistence.models.companies import Company
-from app.infrastructure.persistence.models.jobs import Job
-
-# Đặt đường dẫn chung /api/jobs và nhóm Jobs trong trang /docs.
 router = APIRouter(prefix="/api/jobs", tags=["Jobs"])
 
 
-# Dữ liệu tóm tắt của một tin tuyển dụng được trả cho client.
+# Dữ liệu ngắn gọn dùng trong trang danh sách job.
 class JobSummary(BaseModel):
-    # Khóa chính của tin tuyển dụng.
     id: UUID
-
-    # Tên vị trí tuyển dụng.
     title: str
-
-    # Tên công ty đăng tin.
     company_name: str
 
 
-# Đăng ký endpoint GET /api/jobs, trả về danh sách JobSummary.
+# Dữ liệu dùng trong trang chi tiết một job.
+class JobDetail(JobSummary):
+    company_id: UUID
+    description: str
+    requirements: str | None
+    location: str
+    category: str
+    employment_type: str
+    salary_min: Decimal | None
+    salary_max: Decimal | None
+    deadline: datetime
+
+
+# Stored function chịu trách nhiệm lọc job công khai và công ty hợp lệ.
 @router.get("", response_model=list[JobSummary])
 def list_jobs(db: DatabaseSession) -> list[JobSummary]:
-    # Tạo truy vấn chỉ lấy ba cột cần trả về.
-    statement = (
-        select(Job.id, Job.title, Company.name.label("company_name"))
-        # Ghép jobs với companies qua khóa ngoại company_id.
-        .join(Company, Job.company_id == Company.id)
-        # Chỉ hiển thị tin đã đăng, còn hạn và thuộc công ty hợp lệ.
-        .where(
-            Job.status == "PUBLISHED",
-            Job.deadline > datetime.now(UTC),
-            Company.verification_status == "VERIFIED",
-            Company.status == "ACTIVE",
+    rows = db.execute(text("SELECT * FROM public.list_public_jobs()")).mappings().all()
+    return [JobSummary.model_validate(row) for row in rows]
+
+
+# Tham số :job_id được bind riêng để không nối dữ liệu người dùng vào SQL.
+@router.get("/{job_id}", response_model=JobDetail)
+def get_job(job_id: UUID, db: DatabaseSession) -> JobDetail:
+    row = (
+        db.execute(
+            text("SELECT * FROM public.get_public_job(:job_id)"),
+            {"job_id": job_id},
         )
-        # Giới hạn số bản ghi trả về trong phiên bản đầu tiên.
-        .limit(20)
+        .mappings()
+        .one_or_none()
     )
-
-    # Gửi truy vấn tới PostgreSQL rồi lấy toàn bộ kết quả trong giới hạn trên.
-    rows = db.execute(statement).all()
-
-    # Chuyển từng dòng truy vấn thành cấu trúc JSON đã khai báo.
-    return [
-        JobSummary(id=row.id, title=row.title, company_name=row.company_name)
-        for row in rows
-    ]
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
+    return JobDetail.model_validate(row)
