@@ -70,11 +70,13 @@ erDiagram
 - JD assistant: API nhận title, category, skills và sinh bản nháp description/requirements.
 - Kết quả AI không tự thay đổi trạng thái tuyển dụng và luôn cần người dùng xác nhận trước khi lưu.
 
-## 6. Stored functions hiện tại
+## 6. Stored functions
 
-| Function | API sử dụng |
-|---|---|
-| `public.list_public_jobs()` | `GET /api/jobs` |
-| `public.get_public_job(uuid)` | `GET /api/jobs/{job_id}` |
+Các function company nằm trong `src/backend/sql/company.sql`:
 
-Hai function được tạo trong migration khởi tạo và chỉ đọc các job công khai còn hạn.
+- `list_public_companies()`
+- `get_public_company(uuid)`
+- `list_public_company_jobs(uuid)`
+
+Sau khi áp dụng migration tạo bảng, chạy file SQL để cài/cập nhật function.
+Database đã áp dụng phiên bản cũ có thể vẫn chứa `list_public_jobs()` và `get_public_job(uuid)`; reset source không thay đổi database đó.

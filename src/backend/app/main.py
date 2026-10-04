@@ -1,10 +1,8 @@
 from fastapi import FastAPI
 
 from app.api.routes.company import router as companies_router
-from app.api.routes.job import router as jobs_router
 
 app = FastAPI(title="Job Portal API")
-app.include_router(jobs_router)
 app.include_router(companies_router)
 
 

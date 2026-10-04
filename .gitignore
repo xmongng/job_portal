@@ -6,6 +6,7 @@ coverage/
 
 # Python
 .venv/
+.venv-backup-*/
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -30,3 +31,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Local PostgreSQL installation
+.postgresql/

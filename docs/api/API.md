@@ -2,17 +2,20 @@
 
 Base path: `/api`. OpenAPI tương tác tại `/docs` khi chạy FastAPI.
 
-## API đã có
+## API hiện có
 
 | Method | Path | Ý nghĩa |
 |---|---|---|
 | GET | `/api/health` | Kiểm tra backend hoạt động |
-| GET | `/api/jobs` | Danh sách job công khai còn hạn |
-| GET | `/api/jobs/{job_id}` | Chi tiết một job công khai |
-| GET | `/api/companies` | Danh sách công ty đã xác minh |
-| GET | `/api/companies/{company_id}/jobs` | Job công khai của một công ty |
+| GET | `/api/companies` | Danh sách công ty đã xác minh và đang hoạt động |
+| GET | `/api/companies/{company_id}` | Chi tiết công ty công khai |
+| GET | `/api/companies/{company_id}/jobs` | Job đã đăng và còn hạn của công ty |
 
-Hai API job gọi stored functions `public.list_public_jobs()` và `public.get_public_job(uuid)`. ID truyền vào câu SQL bằng bind parameter.
+API company gọi stored functions trong `src/backend/sql/company.sql`; các UUID được truyền bằng bind parameter. Company không tồn tại/không công khai trả 404; UUID sai định dạng trả 422; danh sách rỗng trả 200 với `[]`.
+
+Sau `alembic upgrade head`, cài các function bằng `psql -h localhost -U jobportal -d jobportal -v ON_ERROR_STOP=1 -f sql/company.sql` từ thư mục backend. Hiện các function company được cài thủ công, chưa có migration riêng.
+
+Chạy FastAPI ở port 8000 để tránh xung đột AirTunes trên macOS. API jobs đã được reset để tự triển khai sau.
 
 ## API sẽ triển khai theo thứ tự
 

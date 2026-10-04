@@ -2,7 +2,7 @@
 
 Scaffold kiến trúc cho hệ thống tuyển dụng 3 vai trò: Admin, Recruiter và Applicant.
 
-> Trạng thái hiện tại: **database schema hoàn chỉnh, API nghiệp vụ chưa triển khai**. Backend có model và migration cho 29 bảng trong ERD; FastAPI hiện mới cung cấp health check.
+> Trạng thái hiện tại: **schema 14 bảng đã có và 3 API company công khai đã được viết**. Backend giữ model, migration tạo bảng, kết nối database và cấu hình; API jobs đã được reset. Frontend đã được gỡ khỏi source để tập trung backend. Viết API tại `src/backend/app/api/routes/` và store company tại `src/backend/sql/company.sql`.
 
 ## Tech stack dự kiến
 
