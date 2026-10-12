@@ -2,7 +2,7 @@
 
 Scaffold kiến trúc cho hệ thống tuyển dụng 3 vai trò: Admin, Recruiter và Applicant.
 
-> Trạng thái hiện tại: **schema 14 bảng đã có và 3 API company công khai đã được viết**. Backend giữ model, migration tạo bảng, kết nối database và cấu hình; API jobs đã được reset. Frontend đã được gỡ khỏi source để tập trung backend. Viết API tại `src/backend/app/api/routes/` và store company tại `src/backend/sql/company.sql`.
+> Trạng thái hiện tại: **schema 14 bảng**, API company/job công khai, đăng ký/đăng nhập JWT, lấy tài khoản hiện tại và đọc/tạo/cập nhật hồ sơ ứng viên. Refresh token/logout và các luồng tuyển dụng còn chưa triển khai. Frontend đã được gỡ khỏi source để tập trung backend. API nằm tại `src/backend/app/api/routes/`, stored functions nằm tại `src/backend/sql/`.
 
 ## Tech stack dự kiến
 
@@ -36,15 +36,7 @@ pip install -e ".[dev]"
 uvicorn app.main:app --reload --port 5000
 ```
 
-Frontend (terminal khác):
-
-```bash
-cd src/frontend
-npm ci
-npm run dev
-```
-
-API health check: `http://localhost:5000/api/health`. FastAPI documentation: `http://localhost:5000/docs`. Frontend: `http://localhost:5173`.
+API health check: `http://localhost:5000/api/health`. FastAPI documentation: `http://localhost:5000/docs`.
 
 Trước khi chạy backend trực tiếp ngoài Docker, đổi hostname `postgres` trong `src/backend/.env` thành `localhost`.
 
@@ -55,6 +47,19 @@ cd src/backend
 source .venv/bin/activate
 alembic upgrade head
 ```
+
+Cài các stored functions sau migration (chạy từ thư mục `src/backend`):
+
+```bash
+psql -h localhost -U jobportal -d jobportal -v ON_ERROR_STOP=1 -f sql/company.sql
+psql -h localhost -U jobportal -d jobportal -v ON_ERROR_STOP=1 -f sql/job.sql
+psql -h localhost -U jobportal -d jobportal -v ON_ERROR_STOP=1 -f sql/auth.sql
+psql -h localhost -U jobportal -d jobportal -v ON_ERROR_STOP=1 -f sql/applicant.sql
+```
+
+Đăng nhập qua `POST /api/auth/login`, sau đó gửi `Authorization: Bearer <access_token>`
+khi gọi `/api/auth/me` hoặc `/api/applicants/me`. PUT hồ sơ thay thế toàn bộ dữ liệu
+hồ sơ được gửi; chỉ tài khoản APPLICANT được sử dụng API hồ sơ ứng viên.
 
 Schema hiện được quản lý qua `app/infrastructure/persistence/models/` và `migrations/versions/`. Các quy tắc liên quan quyền, trạng thái, file CV và transaction cần được thực hiện trong use case/API; chỉ có model và bảng chưa tạo ra chức năng nghiệp vụ.
 

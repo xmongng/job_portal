@@ -1,6 +1,6 @@
 # PHÂN TÍCH BÀI TOÁN — JOB PORTAL (MVP 5 TUẦN)
 
-> **Tài liệu kế hoạch cũ:** schema hiện hành đã được rút gọn còn 14 bảng. Khi code backend, dùng [ERD.md](../database/ERD.md) và [USE_CASES.md](USE_CASES.md) làm nguồn chính.
+> **Cơ sở dữ liệu cuối hiện tại (05/10/2026): 14 bảng nghiệp vụ**, được ghi tại mục 3 và đối chiếu với model/migration trong source. Các mục kế hoạch 5 tuần khác bên dưới còn giữ một số ý tưởng cũ như duyệt job, Screening, audit và lịch sử trạng thái; chúng không phải chức năng đã có trong schema hiện hành. Khi triển khai, dùng mục 3, [ERD.md](../database/ERD.md) và [USE_CASES.md](USE_CASES.md).
 ### Bản điều chỉnh từ tài liệu kiến trúc gốc + Design System màu sắc
 
 > Tài liệu này **điều chỉnh lại** bản phân tích/kiến trúc gốc (`job_portal_analysis_architecture.md`) để vừa khít mốc **5 tuần**, đảm bảo *mọi chức năng cơ bản của đề bài đều chạy được thật*, có **AI tích hợp cơ bản**, và bổ sung **bảng màu/giao diện chuyên nghiệp, tươi sáng** mà bản gốc chưa có. Đi kèm với file [cau-truc-du-an-job-portal-mvp.md](../architecture/cau-truc-du-an-job-portal-mvp.md) (cấu trúc thư mục source code tương ứng).
@@ -101,32 +101,58 @@ Notification xuyên suốt mỗi lần đổi trạng thái
 
 ---
 
-# 3. Dữ liệu chính — rút gọn cho 5 tuần
+# 3. Cơ sở dữ liệu cuối — 14 bảng nghiệp vụ
 
-Giữ đúng 8 entity theo đề bài, bổ sung tối thiểu bảng phụ cần thiết để chạy đúng nghiệp vụ (không thêm bảng cho tính năng bị cắt ở mục 6):
+Schema hiện hành nằm trong `src/backend/app/infrastructure/persistence/models/` và migration `src/backend/migrations/versions/0c4b8405e072_create_compact_job_portal_schema.py`. Không tính bảng kỹ thuật `alembic_version` vào 14 bảng nghiệp vụ.
 
-```text
-users                     (auth: id, email, password_hash, role, is_active)
-companies                 (id, name, description, logo_url, owner tổng)
-company_recruiters        (company_id, user_id) — 1 công ty nhiều recruiter
-skills                    (id, name)
-jobs                      (id, company_id, title, description, salary, location,
-                           status: Draft|PendingApproval|Published|Rejected|Closed,
-                           approved_by, published_at, deadline)
-job_skills                (job_id, skill_id)
-applicants                (user_id, full_name, headline, education, experience)
-applicant_skills          (applicant_id, skill_id)
-resumes                   (id, applicant_id, file_key, original_name, is_default)
-applications              (id, job_id, applicant_id, resume_id, status, applied_at)
-application_status_history(application_id, from_status, to_status, changed_by, changed_at)
-interviews                (id, application_id, round_number, scheduled_at, mode, result, feedback)
-offers                    (id, application_id, salary, start_date, deadline, status)
-notifications             (id, user_id, type, content, is_read, created_at)
-audit_logs                (tối giản: user_id, action, entity, entity_id, created_at)
-refresh_tokens            (tối giản, không cần rotation phức tạp cho 5 tuần)
-```
+## 3.1. Danh sách bảng và chức năng
 
-**Đã bỏ so với bản gốc** (xem lý do đầy đủ ở mục 6): bảng `background_jobs` riêng, bảng version/audit chi tiết cho từng entity, các bảng phục vụ 2FA/OAuth.
+| STT | Bảng | Chức năng | Dữ liệu chính |
+|---|---|---|---|
+| 1 | `users` | Tài khoản dùng chung cho Admin, Recruiter và Applicant | email, password_hash, full_name, role, status |
+| 2 | `auth_sessions` | Quản lý phiên dùng refresh token để cấp access token mới và thu hồi phiên khi logout | user_id, refresh_token_hash, expires_at, revoked_at |
+| 3 | `companies` | Hồ sơ công ty; xác định công ty được công khai hay bị khóa | name, description, industry, location, website_url, verification_status, status |
+| 4 | `company_memberships` | Liên kết recruiter với công ty và phân quyền OWNER/MEMBER | company_id, user_id, membership_role |
+| 5 | `applicants` | Hồ sơ ứng viên; học vấn và kinh nghiệm lưu dạng JSONB | user_id, headline, location, education, experience |
+| 6 | `skills` | Danh mục kỹ năng dùng chung cho ứng viên và job | name |
+| 7 | `applicant_skills` | Ghi nhận các kỹ năng của ứng viên | applicant_id, skill_id |
+| 8 | `jobs` | Tin tuyển dụng và trạng thái đăng tin | company_id, created_by, title, description, requirements, location, category, employment_type, salary_min, salary_max, deadline, status |
+| 9 | `job_skills` | Ghi nhận kỹ năng yêu cầu của job, phục vụ tìm kiếm và matching | job_id, skill_id |
+| 10 | `resumes` | Metadata và vị trí file CV; file được lưu ngoài database | applicant_id, storage_key, mime_type, size_bytes |
+| 11 | `applications` | Đơn ứng tuyển: recruiter xem ai apply; ứng viên theo dõi mình đã apply job nào và trạng thái hiện tại | job_id, applicant_id, resume_id, cover_letter, recruiter_note, status, created_at, updated_at |
+| 12 | `interviews` | Lịch và kết quả các vòng phỏng vấn của một đơn ứng tuyển | application_id, round_number, scheduled_at, status, result |
+| 13 | `offers` | Đề nghị tuyển dụng và phản hồi của ứng viên | application_id, salary, start_date, deadline, status |
+| 14 | `notifications` | Thông báo trong ứng dụng và thời điểm đã đọc | user_id, title, body, resource_type, resource_id, read_at |
+
+## 3.2. Quan hệ và quy tắc chính
+
+- Một user có role `ADMIN`, `RECRUITER` hoặc `APPLICANT`; trạng thái tài khoản là `ACTIVE` hoặc `SUSPENDED`.
+- Một user có nhiều phiên trong `auth_sessions`. Lưu hash refresh token, không lưu token gốc; `expires_at` và `revoked_at` phục vụ kiểm tra phiên khi triển khai API auth.
+- Một công ty có nhiều recruiter qua `company_memberships`; mỗi recruiter thuộc tối đa một công ty. `OWNER` quản lý thành viên; `MEMBER` thực hiện nghiệp vụ tuyển dụng theo quyền được cấp.
+- Công ty công khai phải có `verification_status = VERIFIED` và `status = ACTIVE`.
+- Job có trạng thái `DRAFT`, `PUBLISHED`, `CLOSED`. API public chỉ trả job `PUBLISHED`, còn hạn, thuộc công ty công khai; không có trạng thái `PendingApproval` hay trường duyệt job trong schema này.
+- Một ứng viên có nhiều CV và nhiều đơn ứng tuyển. Cặp `(applicant_id, job_id)` là duy nhất, ngăn ứng tuyển trùng cùng job. `resume_id` chỉ rõ CV đã chọn cho đơn, là tham chiếu tới CV, không phải bản sao toàn bộ nội dung file.
+- `applications` lưu trạng thái hiện tại: `APPLIED`, `INTERVIEW`, `OFFER`, `HIRED`, `REJECTED`, `WITHDRAWN`. Recruiter chỉ xem/xử lý đơn của công ty mình; applicant chỉ xem đơn của mình và không được nhận `recruiter_note` qua DTO public cho ứng viên.
+- Một đơn ứng tuyển có nhiều vòng phỏng vấn và tối đa một offer. Bảng `interviews` tồn tại sẵn; khi recruiter lên lịch mới tạo bản ghi gắn với `application_id`. Việc tạo lịch và chuyển đơn sang `INTERVIEW` cần được thực hiện trong cùng transaction.
+- `applicant_skills` và `job_skills` là hai bảng liên kết nhiều-nhiều, dùng so sánh kỹ năng để gợi ý job. AI đọc dữ liệu hiện có, không cần bảng AI riêng.
+
+## 3.3. Những bảng của kế hoạch cũ không còn trong schema
+
+| Tên trong kế hoạch cũ | Quyết định hiện tại |
+|---|---|
+| `company_recruiters` | Dùng `company_memberships` với quyền OWNER/MEMBER |
+| `refresh_tokens` | Dùng `auth_sessions` lưu hash token, hạn sử dụng và thời điểm thu hồi |
+| `application_status_history` | Chưa triển khai; `applications` chỉ giữ trạng thái hiện tại, không có timeline từng lần đổi trạng thái |
+| `audit_logs` | Chưa triển khai log ai làm gì trên toàn hệ thống |
+| `background_jobs`, bảng 2FA/OAuth, bảng AI/cache | Ngoài phạm vi schema hiện tại |
+
+Nếu bổ sung lịch sử trạng thái hoặc audit sau này, phải tạo model/migration mới và cập nhật lại số bảng. Không coi các bảng này là đã có chỉ vì được nhắc trong kế hoạch cũ.
+
+## 3.4. Tiến độ API hiện tại
+
+Đã có API health và năm API đọc dữ liệu: danh sách công ty, chi tiết công ty, jobs theo công ty, danh sách jobs có `limit`/`offset`, chi tiết job. Store nằm trong `src/backend/sql/company.sql` và `src/backend/sql/job.sql`.
+
+Đã bổ sung đăng ký, đăng nhập JWT, lấy tài khoản hiện tại và đọc/tạo/cập nhật hồ sơ ứng viên. Store tương ứng nằm trong `auth.sql` và `applicant.sql`. Refresh token/logout, CRUD công ty/job, CV, ứng tuyển, phỏng vấn, offer, thông báo và matching/AI vẫn chưa hoàn thành.
 
 ---
 

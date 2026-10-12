@@ -1,4 +1,5 @@
 """Viết các API jobs tại đây, rồi đăng ký router trong app/main.py."""
+
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
@@ -10,6 +11,7 @@ from sqlalchemy import text
 from app.api.dependencies.database import DatabaseSession
 
 router = APIRouter(prefix="/api/jobs", tags=["Jobs"])
+
 
 # DTO cho danh sách job: kiểm tra và trả id, tiêu đề, tên công ty.
 class JobSummary(BaseModel):
@@ -29,14 +31,19 @@ class JobDetail(JobSummary):
     salary_max: Decimal | None
     deadline: datetime
 
+
 # GET /api/jobs/{job_id}: gọi store get_public_job(uuid) bằng bind parameter.
 # Trả chi tiết job công khai; không tìm thấy trả 404, UUID sai định dạng trả 422.
 @router.get("/{job_id}", response_model=JobDetail)
 def get_job(job_id: UUID, db: DatabaseSession) -> JobDetail:
-    row = db.execute(
-        text("Select * from public.get_public_job(:job_id)"),
-        {"job_id": job_id},
-    ).mappings().one_or_none()
+    row = (
+        db.execute(
+            text("Select * from public.get_public_job(:job_id)"),
+            {"job_id": job_id},
+        )
+        .mappings()
+        .one_or_none()
+    )
 
     if row is None:
         raise HTTPException(
@@ -53,10 +60,21 @@ def list_jobs(
     db: DatabaseSession,
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    keyword: str | None = Query(default=None, min_length=1, max_length=200),
+    location: str | None = Query(default=None, min_length=1, max_length=150),
 ) -> list[JobSummary]:
-    rows = db.execute(
-        text("Select * From public.list_public_jobs(:limit, :offset)"),
-        {"limit": limit, "offset": offset},
-    ).mappings().all()
+    rows = (
+        db.execute(
+            text("Select * from public.list_public_jobs(:limit, :offset, :keyword, :location)"),
+            {
+                "limit": limit,
+                "offset": offset,
+                "keyword": keyword,
+                "location": location,
+            },
+        )
+        .mappings()
+        .all()
+    )
 
     return [JobSummary.model_validate(row) for row in rows]

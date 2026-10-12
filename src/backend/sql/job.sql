@@ -1,10 +1,16 @@
 -- Store cho API GET /api/jobs: lấy danh sách job công khai.
--- Không nhận tham số; trả các cột id, title và company_name.
+-- Nhận phân trang và bộ lọc keyword/location; trả id, title và company_name.
 -- Chỉ lấy job PUBLISHED, còn hạn, thuộc công ty ACTIVE và VERIFIED.
 -- Trả tối đa 20 job mới nhất; không có job phù hợp thì trả 0 dòng.
+-- Xóa signature cũ để tránh overload khi gọi với tham số mặc định.
+DROP FUNCTION IF EXISTS public.list_public_jobs(integer, integer);
+DROP FUNCTION IF EXISTS public.list_public_jobs();
+
 Create or Replace function public.list_public_jobs(
     p_limit integer default 20,
-    p_offset integer default 0
+    p_offset integer default 0,
+    p_keyword text default null,
+    p_location text default null
 )
 Returns table(
     id uuid,
@@ -21,6 +27,14 @@ As $$
         And j.deadline > now()
         And c.status = 'ACTIVE'
         And c.verification_status = 'VERIFIED'
+        And (
+            p_keyword is null
+            or j.title Ilike '%' || p_keyword || '%'
+        )
+        AND (
+            p_location IS NULL
+            OR j.location ILIKE '%' || p_location || '%'
+        )
     order by j.created_at desc, j.id
     Limit p_limit
     Offset p_offset;
