@@ -4,24 +4,42 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Numeric, String, Text, func
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Numeric,
+    String,
+    Text,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.base import Base
 
 
-# Mỗi application có tối đa một offer trong phiên bản học tập.
+# Mỗi application có tối đa một offer active (DRAFT/SENT/ACCEPTED).
 class Offer(Base):
     __tablename__ = "offers"
     __table_args__ = (
+        Index(
+            "uq_offer_active_application",
+            "application_id",
+            unique=True,
+            postgresql_where=text("status IN ('DRAFT', 'SENT', 'ACCEPTED')"),
+        ),
         CheckConstraint("salary > 0", name="positive_salary"),
-        CheckConstraint("status IN ('DRAFT', 'SENT', 'ACCEPTED', 'REJECTED')", name="valid_status"),
+        CheckConstraint(
+            "status IN ('DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'CANCELLED')",
+            name="valid_status",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    application_id: Mapped[UUID] = mapped_column(
-        ForeignKey("applications.id"), nullable=False, unique=True
-    )
+    application_id: Mapped[UUID] = mapped_column(ForeignKey("applications.id"), nullable=False)
     salary: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     response_deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

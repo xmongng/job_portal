@@ -24,6 +24,22 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(alias="JWT_SECRET", min_length=32)
     access_token_expire_minutes: int = Field(default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES", ge=1)
 
+    # Refresh token mặc định có thời hạn 7 ngày.
+    refresh_token_expire_days: int = Field(
+        default=7,
+        alias="REFRESH_TOKEN_EXPIRE_DAYS",
+        ge=1,
+    )
+
+    file_storage_path: Path = Field(
+        default=BACKEND_DIR / "private-resumes", alias="FILE_STORAGE_PATH"
+    )
+    max_resume_bytes: int = Field(default=5 * 1024 * 1024, ge=1, le=5 * 1024 * 1024)
+    smtp_enabled: bool = False
+    smtp_host: str = "localhost"
+    smtp_port: int = 1025
+    smtp_from: str = "no-reply@jobportal.local"
+
 
 @lru_cache
 def get_settings() -> Settings:

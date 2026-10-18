@@ -1,4 +1,4 @@
-"""Import toàn bộ 14 model để Alembic nhận đủ metadata."""
+"""Import toàn bộ model để Alembic nhận đủ metadata."""
 
 from .applicants import Applicant as Applicant
 from .applicants import ApplicantSkill as ApplicantSkill
@@ -6,6 +6,9 @@ from .applications import Application as Application
 from .catalog import Skill as Skill
 from .companies import Company as Company
 from .companies import CompanyMembership as CompanyMembership
+from .history import ApplicationStatusHistory as ApplicationStatusHistory
+from .history import AuditLog as AuditLog
+from .history import JobStatusHistory as JobStatusHistory
 from .identity import AuthSession as AuthSession
 from .identity import User as User
 from .interviews import Interview as Interview

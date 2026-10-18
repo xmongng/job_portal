@@ -6,6 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 COPY pyproject.toml ./
 COPY app ./app
+COPY migrations ./migrations
+COPY sql ./sql
+COPY scripts ./scripts
+COPY alembic.ini ./alembic.ini
 RUN pip install --no-cache-dir .
 
 EXPOSE 5000

@@ -1,3 +1,4 @@
+-- Lấy hồ sơ applicant theo user ID đã được API xác minh từ JWT.
 CREATE OR REPLACE FUNCTION public.get_applicant_profile(p_user_id uuid)
 RETURNS TABLE (
     id uuid,
@@ -26,6 +27,7 @@ AS $$
 $$;
 
 
+-- Tạo hoặc thay hồ sơ chính chủ; nếu đã có user_id thì cập nhật cùng dòng.
 Create or Replace function public.upsert_applicant_profile(
     p_user_id uuid,
     p_headline varchar,
@@ -61,4 +63,38 @@ As $$
     updated_at = now()
     RETURNING a.*;
 
+$$;
+
+-- Lấy hồ sơ applicant để xác định user sở hữu.
+-- Đầu vào: id.
+-- Transaction do Python quản lý; function không tự COMMIT.
+CREATE OR REPLACE FUNCTION public.get_applicant_by_id(p_id uuid)
+RETURNS SETOF public.applicants
+LANGUAGE sql STABLE
+AS $$
+SELECT t.* FROM public.applicants AS t
+    WHERE t.id = p_id;
+$$;
+
+-- Lấy hồ sơ theo user trong JWT.
+-- Đầu vào: user_id.
+-- Transaction do Python quản lý; function không tự COMMIT.
+CREATE OR REPLACE FUNCTION public.get_applicant_by_user(p_user_id uuid)
+RETURNS SETOF public.applicants
+LANGUAGE sql STABLE
+AS $$
+SELECT t.* FROM public.applicants AS t
+    WHERE t.user_id = p_user_id;
+$$;
+
+-- Khóa hồ sơ khi thay skills hoặc default CV.
+-- Đầu vào: user_id.
+-- Transaction do Python quản lý; function không tự COMMIT.
+CREATE OR REPLACE FUNCTION public.lock_applicant_by_user(p_user_id uuid)
+RETURNS SETOF public.applicants
+LANGUAGE sql
+AS $$
+SELECT t.* FROM public.applicants AS t
+    WHERE t.user_id = p_user_id
+    FOR UPDATE;
 $$;

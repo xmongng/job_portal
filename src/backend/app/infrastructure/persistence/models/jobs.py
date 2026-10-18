@@ -14,7 +14,10 @@ from app.infrastructure.persistence.base import Base
 class Job(Base):
     __tablename__ = "jobs"
     __table_args__ = (
-        CheckConstraint("status IN ('DRAFT', 'PUBLISHED', 'CLOSED')", name="valid_status"),
+        CheckConstraint(
+            "status IN ('DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'REJECTED', 'CLOSED')",
+            name="valid_status",
+        ),
         CheckConstraint(
             "employment_type IN ('FULL_TIME', 'PART_TIME', 'INTERNSHIP', 'CONTRACT')",
             name="valid_employment_type",
@@ -23,6 +26,7 @@ class Job(Base):
         CheckConstraint(
             "salary_max IS NULL OR salary_max >= salary_min", name="valid_salary_range"
         ),
+        CheckConstraint("salary_max IS NULL OR salary_max >= 0", name="nonnegative_salary_max"),
         Index("ix_jobs_public", "status", "deadline"),
         Index("ix_jobs_company", "company_id"),
     )

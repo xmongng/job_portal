@@ -9,9 +9,11 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     String,
     Text,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,6 +24,12 @@ from app.infrastructure.persistence.base import Base
 class Resume(Base):
     __tablename__ = "resumes"
     __table_args__ = (
+        Index(
+            "uq_resume_default_applicant",
+            "applicant_id",
+            unique=True,
+            postgresql_where=text("is_default"),
+        ),
         CheckConstraint("size_bytes > 0 AND size_bytes <= 5242880", name="valid_size"),
     )
 

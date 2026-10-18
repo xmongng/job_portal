@@ -48,7 +48,7 @@ def get_current_user(
             settings.jwt_secret,
             algorithms=["HS256"],
             options={
-                "require": ["sub", "iat", "exp", "type"],
+                "require": ["sub", "iat", "exp", "type", "sid"],
             },
         )
 
@@ -56,14 +56,15 @@ def get_current_user(
             raise unauthorized
 
         user_id = UUID(payload["sub"])
+        session_id = UUID(payload["sid"])
 
-    except (jwt.InvalidTokenError, ValueError, KeyError):
+    except (jwt.InvalidTokenError, ValueError, KeyError, TypeError):
         raise unauthorized
 
     row = (
         db.execute(
-            text("SELECT * FROM public.get_current_user(:user_id)"),
-            {"user_id": user_id},
+            text("SELECT * FROM public.get_session_user(:user_id, :session_id)"),
+            {"user_id": user_id, "session_id": session_id},
         )
         .mappings()
         .one_or_none()

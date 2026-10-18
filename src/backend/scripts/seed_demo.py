@@ -1,4 +1,4 @@
-"""Tạo dữ liệu liên kết cho 14 bảng của database development rút gọn."""
+"""Tạo dữ liệu liên kết cho 17 bảng của database development rút gọn."""
 
 from __future__ import annotations
 
@@ -8,16 +8,13 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID, uuid5
 
-from sqlalchemy import create_engine, func, select, text
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.core.config import get_settings
-from app.infrastructure.persistence import models  # noqa: F401
-from app.infrastructure.persistence.base import Base
+from app.infrastructure.persistence import stores
+from app.infrastructure.persistence.database import SessionLocal
 
 NAMESPACE = UUID("5e2d293e-3330-4e89-a6be-382a66e2a41d")
-EXPECTED_REVISION = "0c4b8405e072"
+EXPECTED_REVISION = "d927ac4106b8"
 SAMPLE_SIZE = 5
 
 
@@ -32,29 +29,29 @@ def digest(value: str) -> str:
 
 
 def main() -> None:
-    engine = create_engine(get_settings().database_url)
-    tables = Base.metadata.tables
     now = datetime.now(UTC)
 
-    with engine.begin() as conn:
-        database = conn.execute(text("SELECT current_database()")).scalar_one()
+    with SessionLocal.begin() as conn:
+        context = stores.one(conn, "get_seed_context")
+        database = context.database_name
         if database != "jobportal":
             raise RuntimeError(f"Refusing to seed unexpected database: {database}")
 
-        revision = conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+        revision = context.revision
         if revision != EXPECTED_REVISION:
             raise RuntimeError(f"Expected migration {EXPECTED_REVISION}, got {revision}")
 
-        occupied = [
-            table.name
-            for table in tables.values()
-            if conn.scalar(select(func.count()).select_from(table)) != 0
-        ]
+        tables = {row.table_name: row.row_count for row in stores.many(conn, "get_seed_counts")}
+        occupied = [table for table, count in tables.items() if count != 0]
         if occupied:
             raise RuntimeError("Refusing to seed nonempty tables: " + ", ".join(occupied))
 
         def add(table: str, **values: object) -> None:
-            conn.execute(tables[table].insert().values(**values))
+            if table not in tables:
+                raise ValueError("Unknown demo table")
+            stores.execute(
+                conn, "seed_" + table, json_fields=("education", "experience", "details"), **values
+            )
 
         admin_id = sample_id("users", 11)
         add(
@@ -123,8 +120,22 @@ def main() -> None:
                 headline=f"Backend Developer {number}",
                 summary="Demo applicant profile",
                 location=f"Demo City {number}",
-                education=[{"school": f"Demo University {number}", "degree": "Bachelor"}],
-                experience=[{"company": f"Previous Company {number}", "role": "Developer"}],
+                education=[
+                    {
+                        "school": f"Demo University {number}",
+                        "major": "Computer Science",
+                        "start_year": 2020,
+                        "end_year": 2024,
+                    }
+                ],
+                experience=[
+                    {
+                        "company": f"Previous Company {number}",
+                        "position": "Developer",
+                        "start_date": "2024-01-01",
+                        "end_date": "2025-12-31",
+                    }
+                ],
                 desired_salary=25_000_000,
             )
             add("skills", id=skill_id, name=f"Demo Skill {number}")
@@ -199,10 +210,35 @@ def main() -> None:
                 resource_id=application_id,
             )
 
-        counts = {
-            table.name: conn.scalar(select(func.count()).select_from(table))
-            for table in tables.values()
-        }
+        for number in range(1, SAMPLE_SIZE + 1):
+            add(
+                "job_status_history",
+                id=sample_id("job_status_history", number),
+                job_id=sample_id("jobs", number),
+                actor_id=admin_id,
+                from_status=None,
+                to_status="PUBLISHED",
+                note="Seed snapshot",
+            )
+            add(
+                "application_status_history",
+                id=sample_id("application_status_history", number),
+                application_id=sample_id("applications", number),
+                actor_id=admin_id,
+                from_status=None,
+                to_status="OFFER",
+                note="Seed snapshot",
+            )
+            add(
+                "audit_logs",
+                id=sample_id("audit_logs", number),
+                actor_id=admin_id,
+                action="DEMO_SEEDED",
+                resource_id=sample_id("jobs", number),
+                details={},
+            )
+
+        counts = {row.table_name: row.row_count for row in stores.many(conn, "get_seed_counts")}
         expected = {name: (11 if name == "users" else SAMPLE_SIZE) for name in tables}
         if counts != expected:
             raise RuntimeError(f"Unexpected row counts: {counts}")

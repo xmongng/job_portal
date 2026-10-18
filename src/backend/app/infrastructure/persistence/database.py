@@ -26,4 +26,9 @@ def get_db_session() -> Generator[Session, None, None]:
     """Cấp một Session cho request và luôn đóng Session sau khi xử lý xong."""
 
     with SessionLocal() as session:
-        yield session
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise

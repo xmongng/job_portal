@@ -51,7 +51,7 @@ def test_me_returns_user_without_password_and_rejects_recruiter_profile_access()
     app.dependency_overrides[get_db_session] = lambda: db
     try:
         client = TestClient(app)
-        headers = {"Authorization": f"Bearer {create_access_token(user_id)}"}
+        headers = {"Authorization": f"Bearer {create_access_token(user_id, uuid4())}"}
         response = client.get("/api/auth/me", headers=headers)
         assert response.status_code == 200
         assert response.json()["id"] == str(user_id)

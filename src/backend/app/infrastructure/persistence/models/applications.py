@@ -1,9 +1,20 @@
 """Đơn ứng tuyển và trạng thái hiện tại."""
 
 from datetime import datetime
+from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.base import Base
@@ -13,9 +24,10 @@ from app.infrastructure.persistence.base import Base
 class Application(Base):
     __tablename__ = "applications"
     __table_args__ = (
+        Index("ix_applications_job_status", "job_id", "status"),
         UniqueConstraint("applicant_id", "job_id", name="uq_applicant_job"),
         CheckConstraint(
-            "status IN ('APPLIED', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED', 'WITHDRAWN')",
+            "status IN ('APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED', 'WITHDRAWN')",
             name="valid_status",
         ),
     )
@@ -24,6 +36,7 @@ class Application(Base):
     job_id: Mapped[UUID] = mapped_column(ForeignKey("jobs.id"), nullable=False)
     applicant_id: Mapped[UUID] = mapped_column(ForeignKey("applicants.id"), nullable=False)
     resume_id: Mapped[UUID] = mapped_column(ForeignKey("resumes.id"), nullable=False)
+    resume_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     cover_letter: Mapped[str | None] = mapped_column(Text)
     recruiter_note: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="APPLIED")

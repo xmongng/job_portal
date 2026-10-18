@@ -5,12 +5,14 @@ description = "FastAPI scaffold for the Job Portal backend"
 requires-python = ">=3.12"
 dependencies = [
   "alembic>=1.16",
-  "fastapi[standard]",
+  "fastapi[standard]>=0.121",
   "pydantic-settings>=2.0",
   "psycopg[binary]>=3.2",
   "sqlalchemy>=2.0",
   "pwdlib[argon2]",
   "PyJWT",
+  "python-multipart",
+  "pypdf>=5",
 ]
 
 [project.optional-dependencies]

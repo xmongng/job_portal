@@ -61,21 +61,80 @@ AS $$
 $$;
 
 
--- Lấy tài khoản theo ID trong token để kiểm tra user còn tồn tại và hoạt động.
--- Không trả password_hash.
-Create or Replace function public.get_current_user(p_user_id uuid)
-Returns table(
-    id uuid,
-    email text,
-    full_name text,
-    role text,
-    status text
+-- Tạo phiên đăng nhập, chỉ lưu hash của refresh token.
+-- Trả ID phiên và thời điểm hết hạn cho backend.
+CREATE OR REPLACE FUNCTION public.create_auth_session(
+    p_user_id uuid,
+    p_refresh_token_hash text,
+    p_expires_at timestamptz
 )
-Language sql
-Stable
-As $$
-    Select u.id, u.email::text, u.full_name::text, u.role::text, u.status::text
-    from public.users as u
-    Where u.id = p_user_id;
+RETURNS TABLE (
+    id uuid,
+    expires_at timestamptz
+)
+LANGUAGE sql
+AS $$
+    INSERT INTO public.auth_sessions AS s (
+        id,
+        user_id,
+        refresh_token_hash,
+        expires_at
+    )
+    VALUES (
+        gen_random_uuid(),
+        p_user_id,
+        p_refresh_token_hash,
+        p_expires_at
+    )
+    RETURNING s.id, s.expires_at;
+$$;
 
+-- Lấy users theo ID để Python kiểm tra quyền và dữ liệu.
+-- Đầu vào: id.
+-- Transaction do Python quản lý; function không tự COMMIT.
+CREATE OR REPLACE FUNCTION public.get_user_by_id(p_id uuid)
+RETURNS SETOF public.users
+LANGUAGE sql STABLE
+AS $$
+SELECT t.* FROM public.users AS t
+    WHERE t.id = p_id;
+$$;
+
+-- Lấy và khóa dòng users tới cuối transaction, tránh cập nhật đồng thời.
+-- Đầu vào: id.
+-- Transaction do Python quản lý; function không tự COMMIT.
+CREATE OR REPLACE FUNCTION public.lock_user(p_id uuid)
+RETURNS SETOF public.users
+LANGUAGE sql
+AS $$
+SELECT t.* FROM public.users AS t
+    WHERE t.id = p_id
+    FOR UPDATE;
+$$;
+
+-- Tìm và khóa recruiter đang hoạt động theo email.
+-- Đầu vào: email.
+-- Transaction do Python quản lý; function không tự COMMIT.
+CREATE OR REPLACE FUNCTION public.find_active_recruiter(p_email text)
+RETURNS SETOF public.users
+LANGUAGE sql
+AS $$
+SELECT t.* FROM public.users AS t
+    WHERE t.email = lower(trim(p_email)) AND t.role = 'RECRUITER' AND t.status = 'ACTIVE'
+    FOR UPDATE;
+$$;
+
+-- CLI tạo admin; không có public endpoint gọi store này.
+-- Đầu vào: email, password_hash, full_name, role.
+-- Transaction do Python quản lý; function không tự COMMIT.
+CREATE OR REPLACE FUNCTION public.insert_admin(p_email text,
+    p_password_hash text,
+    p_full_name text,
+    p_role text)
+RETURNS SETOF public.users
+LANGUAGE sql
+AS $$
+INSERT INTO public.users (id, email, password_hash, full_name, role)
+    VALUES (gen_random_uuid(), p_email, p_password_hash, p_full_name, p_role)
+    RETURNING *;
 $$;

@@ -1,17 +1,21 @@
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies.auth import AuthenticatedUser, CurrentUser
 from app.api.dependencies.database import DatabaseSession
+from app.application.auth.sessions import revoke_session, rotate_session
 from app.core.config import get_settings
 from app.core.security import (
     create_access_token,
+    create_refresh_token,
     hash_password,
+    hash_refresh_token,
     verify_password,
 )
 
@@ -40,11 +44,12 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
-# JSON trả về khi đăng nhập thành công.
+# JSON trả về khi login hoặc refresh thành công.
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: Literal["bearer"] = "bearer"
-    expires_in: int  # Thời hạn tính bằng giây.
+    expires_in: int  # Thời hạn access token, tính bằng giây.
 
 
 # Hash mật khẩu, gọi store tạo tài khoản rồi commit transaction.
@@ -113,10 +118,53 @@ def login(payload: LoginRequest, db: DatabaseSession) -> TokenResponse:
             detail="Account is suspended",
         )
 
-    return TokenResponse(
-        access_token=create_access_token(row["id"]),
+    settings = get_settings()
+    refresh_token = create_refresh_token()
+    session = (
+        db.execute(
+            text("SELECT * FROM public.create_auth_session(:user_id, :hash, :expires)"),
+            {
+                "user_id": row["id"],
+                "hash": hash_refresh_token(refresh_token),
+                "expires": datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days),
+            },
+        )
+        .mappings()
+        .one()
+    )
+    result = TokenResponse(
+        access_token=create_access_token(row["id"], session["id"]),
+        refresh_token=refresh_token,
+        expires_in=settings.access_token_expire_minutes * 60,
+    )
+    db.commit()
+    return result
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str = Field(min_length=32, max_length=256)
+
+
+# Đổi refresh token nguyên tử; request dùng lại token cũ sẽ nhận 401.
+@router.post("/refresh", response_model=TokenResponse)
+def refresh(payload: RefreshRequest, db: DatabaseSession) -> TokenResponse:
+    token = create_refresh_token()
+    session = rotate_session(db, payload.refresh_token, token)
+    result = TokenResponse(
+        access_token=create_access_token(session.user_id, session.id),
+        refresh_token=token,
         expires_in=get_settings().access_token_expire_minutes * 60,
     )
+    db.commit()
+    return result
+
+
+# Logout idempotent; JWT thuộc phiên bị thu hồi sẽ bị từ chối ngay.
+@router.post("/logout", status_code=204)
+def logout(payload: RefreshRequest, db: DatabaseSession) -> Response:
+    revoke_session(db, payload.refresh_token)
+    db.commit()
+    return Response(status_code=204)
 
 
 # FastAPI chạy get_current_user trước; chỉ user có token hợp lệ mới vào được route.

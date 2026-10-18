@@ -60,6 +60,7 @@ class ApplicantProfileResponse(BaseModel):
     desired_salary: Decimal | None
 
 
+# Applicant đọc hồ sơ chính chủ; chưa tạo hồ sơ trả 404.
 @router.get("/me", response_model=ApplicantProfileResponse)
 def get_my_profile(
     db: DatabaseSession,
@@ -89,6 +90,7 @@ def get_my_profile(
     return ApplicantProfileResponse.model_validate(row)
 
 
+# Tạo hoặc thay toàn bộ hồ sơ của user trong JWT.
 @router.put("/me", response_model=ApplicantProfileResponse)
 def save_my_profile(
     payload: ApplicantProfileRequest,
