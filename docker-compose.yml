@@ -6,25 +6,27 @@ services:
     env_file: ${ENV_FILE:-.env.example}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     ports:
       - "5432:5432"
 
   api:
     build: ./src/backend
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 5000"
     env_file: ${ENV_FILE:-.env.example}
+    environment:
+      FILE_STORAGE_PATH: /app-data/private/resumes
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
       - resume-data:/app-data/private/resumes
     ports:
-      - "5000:5000"
-
-  web:
-    build: ./src/frontend
-    depends_on:
-      - api
-    ports:
-      - "5173:80"
+      - "8000:5000"
 
   mailhog:
     image: mailhog/mailhog:v1.0.1

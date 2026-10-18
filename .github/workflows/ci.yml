@@ -17,13 +17,26 @@ jobs:
         run: |
           test -f src/backend/pyproject.toml
           test -f src/backend/app/main.py
-          test -f src/frontend/package.json
           test -f docs/business-analysis/SRS.md
           test -f docker-compose.yml
       - name: Validate Docker Compose
         run: docker compose config --quiet
 
   backend:
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: jobportal
+          POSTGRES_PASSWORD: test-only-password
+          POSTGRES_DB: jobportal_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://jobportal:test-only-password@localhost:5432/jobportal_test
+      JWT_SECRET: ci-only-secret-with-at-least-thirty-two-characters
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -37,22 +50,5 @@ jobs:
       - run: python -m pip install ".[dev]"
       - run: ruff check .
       - run: python -m compileall app
+      - run: alembic upgrade head
       - run: pytest
-
-  frontend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: src/frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: src/frontend/package-lock.json
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
