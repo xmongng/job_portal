@@ -1,3 +1,5 @@
+> Cập nhật tuần 6: 14 bảng lõi bên dưới được giữ nguyên; migration `c684d93ea201` thêm `job_status_history`, `application_status_history`, `audit_logs` (tổng 17 bảng), snapshot CV và constraint lifecycle mới. Xem [hướng dẫn backend](../architecture/BACKEND_GUIDE.md) để biết luồng hiện hành. Job có thêm PENDING_APPROVAL/REJECTED, application có SCREENING, offer có EXPIRED/CANCELLED và tối đa một offer active thay vì một offer suốt đời.
+
 # Cơ sở dữ liệu Job Portal rút gọn
 
 Phiên bản này dành cho mục tiêu học xây dựng API nghiệp vụ. Schema có **14 bảng**, đủ cho luồng đăng nhập, quản lý công ty, đăng job, ứng tuyển, phỏng vấn, offer, thông báo và gợi ý việc làm cơ bản.

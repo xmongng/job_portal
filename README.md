@@ -1,83 +1,70 @@
-# Job Portal MVP
+# Job Portal Backend
 
-Scaffold kiến trúc cho hệ thống tuyển dụng 3 vai trò: Admin, Recruiter và Applicant.
+Backend học tập dùng Python 3.12+, FastAPI, PostgreSQL 16, SQLAlchemy và Alembic. Ba vai trò: ADMIN, RECRUITER, APPLICANT. Frontend đã được gỡ; phạm vi hiện tại là các API và workflow đến tuần 6, chưa gồm AI/recommendations/reporting tuần 7.
 
-> Trạng thái hiện tại: **schema 14 bảng**, API company/job công khai, đăng ký/đăng nhập JWT, lấy tài khoản hiện tại và đọc/tạo/cập nhật hồ sơ ứng viên. Refresh token/logout và các luồng tuyển dụng còn chưa triển khai. Frontend đã được gỡ khỏi source để tập trung backend. API nằm tại `src/backend/app/api/routes/`, stored functions nằm tại `src/backend/sql/`.
+## Đọc và viết code
 
-## Tech stack dự kiến
+Bắt đầu từ [hướng dẫn đọc code](docs/architecture/BACKEND_GUIDE.md).
 
-- Backend: Python 3.12+, FastAPI, kiến trúc phân lớp nhẹ
-- Database: PostgreSQL 16, SQLAlchemy và Psycopg
-- Frontend: React 19, TypeScript, Vite, Tailwind CSS
-- Testing: Vitest, React Testing Library
-- Local environment: Docker Compose
+- `src/backend/app/api/routes/`: endpoint HTTP và response DTO.
+- `src/backend/app/application/<feature>/`: quyền, trạng thái và các bước xử lý nghiệp vụ bằng Python.
+- `src/backend/sql/`: toàn bộ store đọc/ghi dữ liệu, có comment trước mỗi function và chia theo chức năng.
+- `src/backend/app/infrastructure/persistence/models/`: định nghĩa bảng SQLAlchemy.
+- `src/backend/migrations/`: tạo/cập nhật bảng và snapshot function theo phiên bản.
 
-## Cấu trúc chính
+Mọi thao tác dữ liệu đều qua store. Route gọi Python service để kiểm tra quyền/điều kiện; service gọi store trong transaction. Có thể Command-click vào service để đọc luồng nghiệp vụ; tìm tên function trong `sql/` để xem câu SQL. SQLAlchemy chỉ thực thi function và quản lý transaction, không dùng ORM CRUD trong API.
 
-```text
-src/backend/   Domain, Application, Infrastructure, API, tests
-src/frontend/  UI components, layouts, features theo role, hooks, shared libraries
-docs/          SRS, ERD, API, deployment, flows, Postman và templates
-scripts/       Seed/migration/helper scripts
-```
+## Cài và chạy local
 
-Xem [PROJECT_STRUCTURE.md](docs/architecture/PROJECT_STRUCTURE.md) để hiểu ownership và quy tắc phụ thuộc.
-
-## Chạy scaffold
-
-Backend:
+Từ thư mục repo:
 
 ```bash
 cd src/backend
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
 cp ../../.env.example .env
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-uvicorn app.main:app --reload --port 5000
 ```
 
-API health check: `http://localhost:5000/api/health`. FastAPI documentation: `http://localhost:5000/docs`.
+Nếu môi trường đã cài, chỉ cần `source dev-env.sh`. Có thể dùng `uv pip install -e '.[dev]'` nếu .venv được tạo bằng uv và chưa có pip.
 
-Trước khi chạy backend trực tiếp ngoài Docker, đổi hostname `postgres` trong `src/backend/.env` thành `localhost`.
-
-Sau khi tạo database PostgreSQL và cấu hình `DATABASE_URL`, tạo/cập nhật bảng bằng:
+Trong `.env`, cấu hình `DATABASE_URL` tới PostgreSQL local (hostname `localhost`, đúng tài khoản/mật khẩu/database), `JWT_SECRET` ít nhất 32 ký tự và `FILE_STORAGE_PATH` tới thư mục private có quyền ghi.
 
 ```bash
-cd src/backend
-source .venv/bin/activate
 alembic upgrade head
+python scripts/create_admin.py --email admin@example.com
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Cài các stored functions sau migration (chạy từ thư mục `src/backend`):
+Migration tạo schema và cài các SQL function; không cần chạy từng file SQL thủ công. Database đã chạy revision ban đầu sẽ được nâng cấp, không phải tạo lại. Database hiện có chưa tự nâng cấp chỉ vì bạn pull code.
+
+Swagger: http://127.0.0.1:8000/docs. Health: http://127.0.0.1:8000/api/health.
+
+## Các luồng đến tuần 6
+
+- Register/login, refresh-token rotation, logout và JWT gắn session có thể thu hồi.
+- Company + OWNER/MEMBER membership; admin duyệt company trước khi đăng job.
+- Draft/submit/approve/reject/close job, public search/filter/pagination và history.
+- Profile, education/experience, skill catalogue và lựa chọn skills của applicant.
+- Upload/list/default/delete/download PDF CV private (tối đa 5 MiB).
+- Apply với snapshot CV, xem đơn, note nội bộ, screening/interview, reject/withdraw và history.
+- Interview scheduling, kiểm tra trùng lịch, cancel và ghi kết quả.
+- Offer draft/send/accept/reject/expire, một offer active/application.
+- In-app notifications, đánh dấu đã đọc và email SMTP local tùy chọn qua worker sau commit.
+
+Schema hiện có 14 bảng nghiệp vụ ban đầu cộng 3 bảng history/audit. Các API riêng tư luôn kiểm tra quyền theo user/company; không chỉ kiểm tra role.
+
+## Postman và kiểm chứng
+
+Xem [API contract](docs/api/API.md), [luồng Postman](docs/flows/week6-postman.md) và import `docs/postman/JobPortal.postman_collection.json`. Chọn PDF thật trong request upload và cấu hình credentials/ID tương ứng. Collection phục vụ kiểm tra thủ công theo workflow, không chạy toàn bộ ngẫu nhiên.
+
+Các test sẵn có:
 
 ```bash
-psql -h localhost -U jobportal -d jobportal -v ON_ERROR_STOP=1 -f sql/company.sql
-psql -h localhost -U jobportal -d jobportal -v ON_ERROR_STOP=1 -f sql/job.sql
-psql -h localhost -U jobportal -d jobportal -v ON_ERROR_STOP=1 -f sql/auth.sql
-psql -h localhost -U jobportal -d jobportal -v ON_ERROR_STOP=1 -f sql/applicant.sql
+python -m pytest -q
+ruff check .
 ```
 
-Đăng nhập qua `POST /api/auth/login`, sau đó gửi `Authorization: Bearer <access_token>`
-khi gọi `/api/auth/me` hoặc `/api/applicants/me`. PUT hồ sơ thay thế toàn bộ dữ liệu
-hồ sơ được gửi; chỉ tài khoản APPLICANT được sử dụng API hồ sơ ứng viên.
+Docker Compose hiện chỉ gồm API + PostgreSQL và MailHog tùy chọn, không còn frontend. API container tự áp dụng migration khi khởi động. Chạy từ repo root bằng `docker compose up --build`; dùng port 8000 ở host.
 
-Schema hiện được quản lý qua `app/infrastructure/persistence/models/` và `migrations/versions/`. Các quy tắc liên quan quyền, trạng thái, file CV và transaction cần được thực hiện trong use case/API; chỉ có model và bảng chưa tạo ra chức năng nghiệp vụ.
-
-## Quy ước phát triển
-
-1. Domain không phụ thuộc framework hoặc database.
-2. Application chỉ phụ thuộc Domain.
-3. Infrastructure hiện thực interface từ Application.
-4. API là composition root và không chứa business rule.
-5. Frontend tổ chức theo feature/role; component dùng chung đặt tại `components/ui`.
-6. Mỗi use case nằm trong một file Command/Query riêng và có test tương ứng.
-
-## Tài khoản demo dự kiến
-
-| Role | Email |
-|---|---|
-| Admin | `admin@jobportal.local` |
-| Recruiter | `recruiter@techcorp.local` |
-| Applicant | `applicant@example.local` |
-
-Thông tin triển khai sẽ được bổ sung khi bắt đầu coding.
+Không commit `.env`, file CV, virtual environment hoặc dữ liệu PostgreSQL. Xem [CONTRIBUTING.md](CONTRIBUTING.md) để biết quy ước commit.

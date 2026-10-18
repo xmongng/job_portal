@@ -1,6 +1,6 @@
 # Use cases cốt lõi — Job Portal backend
 
-Tài liệu này khớp với schema 14 bảng trong [ERD.md](../database/ERD.md).
+Tài liệu này khớp với schema lõi 14 bảng và 3 bảng history/audit tuần 6 trong [ERD.md](../database/ERD.md).
 
 | Mã | Use case | Bảng chính |
 |---|---|---|
@@ -30,15 +30,18 @@ Tài liệu này khớp với schema 14 bảng trong [ERD.md](../database/ERD.md
 ## Trạng thái chính
 
 ```text
-Job: DRAFT -> PUBLISHED -> CLOSED
+Job: DRAFT -> PENDING_APPROVAL -> PUBLISHED -> CLOSED
+                       |
+                       +-> REJECTED -> PENDING_APPROVAL
 
-Application: APPLIED -> INTERVIEW -> OFFER -> HIRED
+Application: APPLIED -> SCREENING -> INTERVIEW -> OFFER -> HIRED
              |            |          |
              +----------> REJECTED <-+
              +----------> WITHDRAWN
 
 Interview: SCHEDULED -> COMPLETED/CANCELLED
-Offer: DRAFT -> SENT -> ACCEPTED/REJECTED
+Offer: DRAFT -> SENT -> ACCEPTED/REJECTED/EXPIRED
+       DRAFT/SENT -> CANCELLED khi application bị reject/withdraw
 ```
 
 State transition được kiểm tra trong application service. Database dùng check constraint để từ chối giá trị trạng thái không hợp lệ.
