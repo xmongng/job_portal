@@ -34,3 +34,7 @@ Thumbs.db
 
 # Local PostgreSQL installation
 .postgresql/
+
+# Private database backups
+*.dump
+backups/

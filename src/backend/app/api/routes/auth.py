@@ -3,7 +3,7 @@ from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Response, status
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
@@ -24,6 +24,7 @@ router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 # Dữ liệu người dùng gửi khi đăng ký; không cho chọn ADMIN.
 class RegisterRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     email: EmailStr  # Kiểm tra email đúng định dạng.
     password: str = Field(min_length=8, max_length=128)
     full_name: str = Field(min_length=1, max_length=150)
