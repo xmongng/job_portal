@@ -1,4 +1,4 @@
-# API through Week 6
+# API — Complete backend functions
 
 Base URL local: `http://127.0.0.1:8000`. Swagger: `/docs`.
 
@@ -92,6 +92,22 @@ Mọi truy vấn/ghi dữ liệu đều đi qua function trong `src/backend/sql/
 
 `applicant` on shared application/interview/offer reads means the applicant owner or a recruiter of the associated company; draft offers remain hidden from applicants. Offer expire is available to the owner or company recruiter. Notifications are available to any active authenticated role for its own records. See Swagger DTOs for exact bodies.
 
+## Week 7 endpoints
+
+| Method | Path | Access |
+|---|---|---|
+| GET | `/api/recommendations` | Applicant own profile |
+| POST | `/api/ai/jobs/{job_id}/explain` | Applicant |
+| POST | `/api/ai/job-description` | Recruiter; draft only |
+| GET | `/api/admin/users` | Admin |
+| PUT | `/api/admin/users/{user_id}/status` | Admin |
+| PUT | `/api/admin/companies/{company_id}/status` | Admin |
+| GET | `/api/admin/audit-logs` | Admin |
+| GET | `/api/reports/summary` | Admin or company recruiter |
+| GET | `/api/reports/export.csv` | Admin or company recruiter |
+
+See [Week 7–8 Postman instructions](../flows/final-postman.md). AI uses Gemini via httpx only when explicitly configured, otherwise deterministic fallback. Scores are computed by SQL rules. Admin suspension revokes sessions. Report company scope is checked before aggregation/export.
+
 ## Scope
 
-Implemented source covers the Week 4–6 backend workflows. Recommendations/AI, reporting and broad admin user moderation are Week 7 work. The automated full HTTP/PostgreSQL verification is separate from manual Postman acceptance; importing the collection does not certify the plan complete.
+Implemented source covers backend workflows through Week 7 and Week 8 handover tooling. See `docs/verification/PLAN_COMPLETION.md` for verification and deployment limits. The automated full HTTP/PostgreSQL verification is separate from manual Postman acceptance; importing the collection does not certify the plan complete.

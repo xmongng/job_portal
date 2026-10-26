@@ -1,6 +1,6 @@
 # Job Portal Backend
 
-Backend học tập dùng Python 3.12+, FastAPI, PostgreSQL 16, SQLAlchemy và Alembic. Ba vai trò: ADMIN, RECRUITER, APPLICANT. Frontend đã được gỡ; phạm vi hiện tại là các API và workflow đến tuần 6, chưa gồm AI/recommendations/reporting tuần 7.
+Backend học tập dùng Python 3.12+, FastAPI, PostgreSQL 16, SQLAlchemy và Alembic. Ba vai trò: ADMIN, RECRUITER, APPLICANT. Frontend đã được gỡ; phạm vi hiện tại gồm các API đến tuần 7 và công cụ kiểm thử/bàn giao tuần 8. Xem [đối chiếu plan](docs/verification/PLAN_COMPLETION.md).
 
 ## Đọc và viết code
 
@@ -40,7 +40,7 @@ Migration tạo schema và cài các SQL function; không cần chạy từng fi
 
 Swagger: http://127.0.0.1:8000/docs. Health: http://127.0.0.1:8000/api/health.
 
-## Các luồng đến tuần 6
+## Các luồng đã triển khai
 
 - Register/login, refresh-token rotation, logout và JWT gắn session có thể thu hồi.
 - Company + OWNER/MEMBER membership; admin duyệt company trước khi đăng job.
@@ -52,13 +52,18 @@ Swagger: http://127.0.0.1:8000/docs. Health: http://127.0.0.1:8000/api/health.
 - Offer draft/send/accept/reject/expire, một offer active/application.
 - In-app notifications, đánh dấu đã đọc và email SMTP local tùy chọn qua worker sau commit.
 
+- Recommendation theo quy tắc skills/location/salary; AI giải thích match và draft JD với fallback.
+- Admin quản lý trạng thái user/company, audit log, báo cáo aggregate và CSV.
+
 Schema hiện có 14 bảng nghiệp vụ ban đầu cộng 3 bảng history/audit. Các API riêng tư luôn kiểm tra quyền theo user/company; không chỉ kiểm tra role.
 
 ## Postman và kiểm chứng
 
 Xem [API contract](docs/api/API.md), [luồng Postman](docs/flows/week6-postman.md) và import `docs/postman/JobPortal.postman_collection.json`. Chọn PDF thật trong request upload và cấu hình credentials/ID tương ứng. Collection phục vụ kiểm tra thủ công theo workflow, không chạy toàn bộ ngẫu nhiên.
 
-Các test sẵn có:
+Xem thêm [Week 7–8 Postman](docs/flows/final-postman.md), [deployment/backup](docs/deployment/DEPLOYMENT.md). AI mặc định tắt (`AI_PROVIDER=none`); Gemini chỉ bật khi cấu hình API key/model.
+
+Các test sẵn có (test PostgreSQL cần `TEST_DATABASE_URL` tới database riêng `_test`):
 
 ```bash
 python -m pytest -q
