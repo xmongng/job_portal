@@ -1,1 +1,1 @@
-"""Use cases dashboard và báo cáo CSV."""
+"""Backend reports functions."""

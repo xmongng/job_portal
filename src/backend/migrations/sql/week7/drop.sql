@@ -1,0 +1,12 @@
+DROP FUNCTION IF EXISTS public.report_application_status(uuid);
+DROP FUNCTION IF EXISTS public.report_job_status(uuid);
+DROP FUNCTION IF EXISTS public.get_portal_counts(uuid);
+DROP FUNCTION IF EXISTS public.list_admin_audit(integer,integer);
+DROP FUNCTION IF EXISTS public.set_company_status(uuid,text);
+DROP FUNCTION IF EXISTS public.revoke_user_sessions(uuid);
+DROP FUNCTION IF EXISTS public.set_user_status(uuid,text);
+DROP FUNCTION IF EXISTS public.count_active_admins();
+DROP FUNCTION IF EXISTS public.lock_admin_moderation();
+DROP FUNCTION IF EXISTS public.list_admin_users(text,text,text,integer,integer);
+DROP FUNCTION IF EXISTS public.get_job_match(uuid,uuid);
+DROP FUNCTION IF EXISTS public.recommend_jobs(uuid,integer,integer);

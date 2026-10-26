@@ -14,7 +14,7 @@ from app.infrastructure.persistence import stores
 from app.infrastructure.persistence.database import SessionLocal
 
 NAMESPACE = UUID("5e2d293e-3330-4e89-a6be-382a66e2a41d")
-EXPECTED_REVISION = "d927ac4106b8"
+EXPECTED_REVISION = "e731ba6208c4"
 SAMPLE_SIZE = 5
 
 

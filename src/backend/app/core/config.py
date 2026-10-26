@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -35,6 +36,14 @@ class Settings(BaseSettings):
         default=BACKEND_DIR / "private-resumes", alias="FILE_STORAGE_PATH"
     )
     max_resume_bytes: int = Field(default=5 * 1024 * 1024, ge=1, le=5 * 1024 * 1024)
+    ai_provider: Literal["none", "gemini"] = "none"
+    ai_api_key: str = ""
+    ai_model: str = Field(default="", pattern=r"^[A-Za-z0-9._-]*$")
+    ai_timeout_seconds: float = Field(default=10, gt=0, le=30)
+    cors_origins: list[str] = []
+    allowed_hosts: list[str] = ["localhost", "127.0.0.1", "testserver"]
+    auth_rate_limit_per_minute: int = Field(default=30, ge=1)
+    ai_rate_limit_per_minute: int = Field(default=10, ge=1)
     smtp_enabled: bool = False
     smtp_host: str = "localhost"
     smtp_port: int = 1025
